@@ -560,6 +560,14 @@
                        : 'Firma el informe de supervisión y después acepta el plan de pagos.') +
         (cu.ultimo ? ' Es la <b>última cuenta</b> del contrato: lleva además el <b>acta de cumplimiento</b>' +
           (cu.acta ? ', que ya está firmada.' : '. Fírmala antes de aceptar el plan.') : '') + '</span></p>'));
+      /* 6.4 · la última corrección del plan que se le pidió al contratista */
+      if (cu.correccionPlan) {
+        var cp = K.nodo('<div class="kit-tarjeta rv-aviso rv-aviso--malo sp-corr">' + K.icono('aviso', 18) +
+          '<span><b>Corrección del plan pedida</b> el ' + K.esc(cu.correccionPlan.fecha) + ' por ' + K.esc(nombre(cu.correccionPlan.por)) +
+          '. Cuando el contratista la corrija en el SECOP II, te avisa con REPORTAR CORRECCIÓN DEL PLAN.<span class="sp-corr__t"></span></span></div>');
+        cp.querySelector('.sp-corr__t').textContent = cu.correccionPlan.texto;
+        caja.appendChild(cp);
+      }
     } else if (!cu.porRevisar) {
       caja.appendChild(K.nodo('<p class="kit-tarjeta rv-aviso' + (estadoTono(cu.estado) === 'malo' ? ' rv-aviso--malo' : '') + '">' + K.icono('info', 18) +
         '<span>Esta cuenta está <b>' + K.esc(estadoTexto(cu.estado)) + '</b>. Puedes mirarla, pero ya no se guardan notas ni decisiones.</span></p>'));
@@ -1369,10 +1377,17 @@
       va.addEventListener('click', function () { verActa(); });
       BARRA.appendChild(va);
     }
+    /* 6.4 · el atajo al SECOP II, para revisar el plan donde el contratista lo subió */
+    var sc = K.nodo('<a class="kit-btn rv-barra__g sp-secop" target="_blank" rel="noopener">' + K.icono('abrir-pestana', 16) + ' Ir a SECOP II</a>');
+    sc.href = urlSecop();
+    BARRA.appendChild(sc);
     if (!D.puedeDecidir) {
       BARRA.appendChild(K.nodo('<p class="rv-barra__nota">El informe sale firmado a nombre del supervisor: lo firma y acepta el plan quien tiene ese permiso.</p>'));
       return;
     }
+    var pc = K.nodo('<button type="button" class="kit-btn rv-barra__g sp-corregir">' + K.icono('responder', 16) + ' Pedir corrección del plan</button>');
+    pc.addEventListener('click', corregirPlan);
+    BARRA.appendChild(pc);
     var f = K.nodo('<button type="button" class="kit-btn' + (cu.informeSup ? '' : ' kit-btn--marca') + ' rv-barra__g">' + K.icono('lapiz', 16) +
       (cu.informeSup ? ' Volver a firmar el informe' : ' Firmar informe de supervisión') + '</button>');
     f.addEventListener('click', firmarInforme);
@@ -1515,6 +1530,66 @@
         K.aviso((e && e.message) || 'No se pudo firmar el informe.', 'malo', 9000);
       });
     });
+  }
+
+  /* 6.4 · el SECOP II sale de SITIOS_WEB de CONFIG (el mismo de CONTRATISTA); este es el respaldo */
+  var SECOP = 'https://community.secop.gov.co/STS/Users/Login/Index?SkinName=CCE&currentLanguage=es-CO&Page=login&Country=CO';
+  function urlSecop() {
+    var cfg = (C.config && C.config()) || {};
+    var l = cfg.SITIOS_WEB;
+    if (typeof l === 'string') { try { l = JSON.parse(l); } catch (e) { l = null; } }
+    var s = (l || []).filter(function (x) { return x && /SECOP/i.test(x.titulo || ''); })[0];
+    return (s && s.url) || SECOP;
+  }
+
+  /**
+   * 6.4 · PEDIR LA CORRECCIÓN DEL PLAN (el "Retroalimentación plan de pagos"
+   * de la app vieja). La cuenta NO cambia de estado: sigue en PLAN DE PAGOS.
+   * Al contratista le llega, a nombre del supervisor, qué corregir en el
+   * SECOP II; cuando lo corrige, avisa desde su app con REPORTAR
+   * CORRECCIÓN DEL PLAN. Queda en la historia de la cuenta.
+   */
+  function corregirPlan() {
+    var cu = D.cuenta;
+    var TOPE = 3000;
+    var cuerpo = K.nodo('<div class="of-redactar"></div>');
+    cuerpo.appendChild(K.nodo('<p class="formulario__nota">Especifícale a <b>' + K.esc(nombre(cu.nombre)) + '</b> qué debe corregir en su plan de pagos de la cuenta ' +
+      K.esc(cu.informe) + ' en el SECOP II. La cuenta sigue en plan de pagos.</p>'));
+    var ta = K.nodo('<textarea class="rv-editor__ta" rows="6" maxlength="' + TOPE + '" placeholder="Ej.: el valor del plan de pagos no coincide con el cobro de la cuenta…"></textarea>');
+    cuerpo.appendChild(ta);
+    var n = K.nodo('<p class="of-cuenta">0 / ' + TOPE + '</p>');
+    cuerpo.appendChild(n);
+    ta.addEventListener('input', function () { n.textContent = ta.value.length + ' / ' + TOPE; });
+    cuerpo.appendChild(K.nodo('<p class="formulario__nota">' + K.icono('campana', 13) + ' Le llega como notificación y por WhatsApp, a nombre de ' + K.esc(nombre(cu.supervisor)) + '.</p>'));
+    var m = modal({
+      titulo: 'Pedir corrección del plan de pagos', cuerpo: cuerpo, ancha: true,
+      botones: [
+        { texto: 'Cancelar', al: function () { m.cerrar(); } },
+        { texto: 'Enviar', icono: 'enviar', marca: true, al: enviar }
+      ]
+    });
+    setTimeout(function () { ta.focus(); }, 120);
+    function enviar() {
+      var texto = ta.value.replace(/\r/g, '').trim();
+      if (texto.length < 10) { K.aviso('Escribe qué debe corregir (mínimo 10 caracteres).', 'aviso', 4000); ta.focus(); return; }
+      if (K.ocupado) return;
+      K.ocupado = true;
+      m.cerrar();
+      K.piezas.guardado.mientras(K.pedir('corregirPlan', { fila: cu.fila, id: cu.idContrato, informe: cu.informe, texto: texto }, { ms: 60000 }), {
+        titulo: 'Pidiendo la corrección del plan', sub: 'La cuenta sigue en plan de pagos.',
+        pasos: ['Guardando lo que hay que corregir…', 'Avisando al contratista…'],
+        listo: { titulo: 'Corrección pedida', paso: 'El contratista ya sabe qué corregir' }
+      }).then(function (r) {
+        K.ocupado = false;
+        if (r && r.lista) recibir(r.lista);
+        cu.correccionPlan = r && r.correccion;
+        if (r && r.aviso && r.aviso.ok === false) K.aviso('Quedó guardada, pero el aviso al contratista no salió: ' + (r.aviso.error || 'sin canal') + '.', 'aviso', 9000);
+        repintarTodo();
+      }, function (e) {
+        K.ocupado = false;
+        K.aviso((e && e.message) || 'No se pudo pedir la corrección.', 'malo', 8000);
+      });
+    }
   }
 
   function aceptarPlan() {

@@ -15,3 +15,7 @@ App de los supervisores de contrato de la Alcaldía de Flandes. Front estático 
 - Aceptar el plan de pagos avisa, a nombre del supervisor, al grupo de Contabilidad (pedido de la orden de pago) y al contratista (push + WhatsApp + su buzón) con el enlace del informe de supervisión y, en la última cuenta, el del acta final de cumplimiento.
 - CONTRATISTAS de la supervisión con su ficha, INFORME de cuentas de un contrato (PDF por bloques y Excel con las columnas compartidas con Contabilidad y Tesorería: `kit/informe-cuentas.js`), INFORMES FIRMADOS (hoja FIRMAS, con el PDF en el visor), REPORTE DE SUPERVISIÓN (todas las cuentas por etapa), REQUERIMIENTOS, COMUNICADOS, DIRECTORIO, DRIVE DE HACIENDA (llave `DRIVE_HACIENDA` de CONFIG) y MI FIRMA Y MI FOTO.
 - Todas las vistas con carga única, Refrescar, esqueleto centrado, Insights y modo oscuro.
+
+## Entrega 6.4
+- PEDIR CORRECCIÓN DEL PLAN (el "Retroalimentación plan de pagos" de la app vieja): el supervisor escribe qué corregir; al contratista le llega a nombre del supervisor (push + WhatsApp + buzón). La cuenta sigue en PLAN DE PAGOS y el contratista avisa con REPORTAR CORRECCIÓN DEL PLAN. La última corrección pedida se ve en la cuenta.
+- IR A SECOP II: en la barra del plan de pagos, en el menú del perfil y en el inicio (URL de SITIOS_WEB de CONFIG).

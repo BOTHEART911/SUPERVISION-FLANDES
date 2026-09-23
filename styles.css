@@ -2534,3 +2534,9 @@
 .pf-img { max-width: 100%; max-height: 180px; object-fit: contain; }
 .pf-prev { display: flex; flex-direction: column; gap: 8px; }
 .pf-prev .grupo__t { margin: 0; }
+
+/* 6.4 · la última corrección del plan pedida al contratista */
+.sp-corr > span { display: flex; flex-direction: column; gap: 6px; }
+.sp-corr__t { display: block; padding: 8px 10px; border-radius: var(--k-r-md); background: var(--k-papel); color: var(--k-tinta);
+  font: 400 .86rem/1.5 var(--k-fuente); white-space: pre-wrap; overflow-wrap: anywhere; }
+.sp-secop { text-decoration: none; }

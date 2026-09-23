@@ -136,6 +136,7 @@
         app: app, puede: puede, irA: irA, errorCaja: errorCaja,
         yo: function () { return YO || {}; },
         alcance: function () { return (ARRANQUE && ARRANQUE.alcance) || {}; },
+        config: function () { return (ARRANQUE && ARRANQUE.config) || {}; },   /* 6.4: SITIOS_WEB para el SECOP II */
         /* los números del inicio siguen a la lista sin otro viaje */
         alCambiar: function (n) { if (ARRANQUE) ARRANQUE.cuentas = n; }
       });
@@ -202,6 +203,8 @@
         { texto: 'Foto de perfil', al: abrirFoto },
         /* 6.3 · la firma del informe */
         { texto: 'Mi firma y mi foto', al: function () { irA('perfil'); } },
+        /* 6.4 · el atajo de la app vieja */
+        { texto: 'Ir a SECOP II', al: function () { window.open(urlSecop(), '_blank', 'noopener'); } },
         { texto: 'Actualizar contraseña', al: function () { K.piezas.sesion.cambiarClave(); } },
         { texto: 'Instalar la app', al: function () { K.piezas.instalar.abrir(); } },
         /* 5.1.1 · soporte en TODAS las apps: se guarda en la hoja SOPORTE
@@ -211,6 +214,14 @@
       ]
     });
     if (K.piezas.cielo) K.piezas.cielo.soloFondo(document.querySelector('.kit-banner'));
+  }
+
+  /** 6.4 · el SECOP II sale de SITIOS_WEB de CONFIG (el mismo de CONTRATISTA). */
+  function urlSecop() {
+    var l = ARRANQUE && ARRANQUE.config && ARRANQUE.config.SITIOS_WEB;
+    if (typeof l === 'string') { try { l = JSON.parse(l); } catch (e) { l = null; } }
+    var x = (l || []).filter(function (w) { return w && /SECOP/i.test(w.titulo || ''); })[0];
+    return (x && x.url) || 'https://community.secop.gov.co/STS/Users/Login/Index?SkinName=CCE&currentLanguage=es-CO&Page=login&Country=CO';
   }
 
   function rolLegible(r) {
@@ -386,6 +397,9 @@
     if (tOf.length) bloque('OFICINA', tOf);
 
     var tInst = [];
+    /* 6.4 · el atajo al SECOP II (la imagen del globo con www es la de los sitios web) */
+    tInst.push(acceso('IR A SECOP II', 'La plataforma de contratación pública: ahí revisas el plan de pagos del contratista',
+      'img/sitios_web.webp', function () { window.open(urlSecop(), '_blank', 'noopener'); }));
     if (puede('directorio')) tInst.push(acceso('DIRECTORIO INSTITUCIONAL', 'Dónde queda cada dependencia, sus correos y teléfonos',
       'img/institucional.webp', function () { irA('directorio'); }));
     if (puede('configuracion')) tInst.push(acceso('MI FIRMA Y MI FOTO', 'La firma que sale en tus informes y tu foto de perfil',
