@@ -1522,19 +1522,25 @@
     K.piezas.confirmar.abrir({
       titulo: 'Aceptar el plan de pagos',
       lista: [['Contratista', nombre(cu.nombre)], ['Cuenta', cu.informe + ' de ' + (cu.total || '—')], ['A nombre de', nombre(cu.supervisor)]],
-      nota: 'La cuenta queda CERRADA y pasa a la oficina de Contabilidad. Al contratista le llega el aviso.',
+      /* 6.3 · a quién se avisa y con qué, a nombre del supervisor */
+      nota: 'La cuenta queda CERRADA y pasa a Contabilidad. Se avisa al grupo de Contabilidad (pedido de la orden de pago) y al contratista, con el enlace del informe de supervisión' +
+            (cu.ultimo ? ' y el del acta final de cumplimiento' : '') + '. Todo sale a nombre de ' + nombre(cu.supervisor) + '.',
       si: 'Aceptar', no: 'Cancelar'
     }).then(function (ok) {
       if (!ok) return;
       K.ocupado = true;
       K.piezas.guardado.mientras(K.pedir('cerrarPlan', { fila: cu.fila, id: cu.idContrato, informe: cu.informe }, { ms: 90000 }), {
         titulo: 'Aceptando el plan de pagos', sub: 'No cierres la app.',
-        pasos: ['Cerrando la cuenta…', 'Anotando quién y cuándo…', 'Avisando al contratista…'],
+        pasos: ['Cerrando la cuenta…', 'Anotando quién y cuándo…', 'Pidiendo la orden de pago a Contabilidad…', 'Avisando al contratista…'],
         listo: { titulo: 'Plan de pagos aceptado', paso: 'La cuenta pasó a Contabilidad' }
       }).then(function (r) {
         K.ocupado = false;
         if (r && r.lista) recibir(r.lista);
-        if (r && r.aviso && r.aviso.ok === false) K.aviso('Quedó CERRADA, pero el aviso al contratista no salió: ' + (r.aviso.error || 'sin canal') + '.', 'aviso', 9000);
+        var fallos = [];
+        if (r && r.grupo && r.grupo.ok === false) fallos.push('al grupo de Contabilidad (' + (r.grupo.error || 'sin respuesta') + ')');
+        if (r && r.aviso && r.aviso.ok === false) fallos.push('al contratista (' + (r.aviso.error || 'sin canal') + ')');
+        if (fallos.length) K.aviso('Quedó CERRADA, pero el aviso no salió ' + fallos.join(' ni ') + '.', 'aviso', 10000);
+        else K.aviso('Avisado: Contabilidad y el contratista' + (r && r.actaUrl ? ' (con el informe y el acta)' : ' (con el informe)') + '.', 'ok', 4000);
         C.irA('revisar');
       }, function (e) {
         K.ocupado = false;

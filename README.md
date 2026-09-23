@@ -10,3 +10,8 @@ App de los supervisores de contrato de la Alcaldía de Flandes. Front estático 
 - Plan de pagos: firmar el informe de supervisión (plantilla V3 de Drive, con RP de cesión) y aceptar el plan. El acta de cumplimiento del último informe llega en la 6.2.
 - Solicitud a Prensa sin antelación mínima (desde hoy).
 - Descarga de la lista: Excel plano y PDF como informe por bloques.
+
+## Entrega 6.3
+- Aceptar el plan de pagos avisa, a nombre del supervisor, al grupo de Contabilidad (pedido de la orden de pago) y al contratista (push + WhatsApp + su buzón) con el enlace del informe de supervisión y, en la última cuenta, el del acta final de cumplimiento.
+- CONTRATISTAS de la supervisión con su ficha, INFORME de cuentas de un contrato (PDF por bloques y Excel con las columnas compartidas con Contabilidad y Tesorería: `kit/informe-cuentas.js`), INFORMES FIRMADOS (hoja FIRMAS, con el PDF en el visor), REPORTE DE SUPERVISIÓN (todas las cuentas por etapa), REQUERIMIENTOS, COMUNICADOS, DIRECTORIO, DRIVE DE HACIENDA (llave `DRIVE_HACIENDA` de CONFIG) y MI FIRMA Y MI FOTO.
+- Todas las vistas con carga única, Refrescar, esqueleto centrado, Insights y modo oscuro.

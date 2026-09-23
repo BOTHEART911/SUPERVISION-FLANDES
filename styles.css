@@ -2467,3 +2467,70 @@
 @media (min-width: 560px) { .sp-dec__ops { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 
 .sp-barra__vb svg { color: var(--k-ok); }
+
+/* ══════════════ 6.3 · las vistas nuevas ══════════════ */
+
+/* INFORMES FIRMADOS */
+.sf-t .ct-acc { flex-wrap: wrap; }
+.sf-sinpdf { margin: 0; }
+
+/* INFORME DE CUENTAS de un contrato */
+.inf-cifras .ct-cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 760px) { .inf-cifras .ct-cifras { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.inf-cifras .ct-cifra b { font-size: 1rem; overflow-wrap: anywhere; }
+.inf-cifras .ct-plazo { margin-top: 12px; }
+.inf-bajar { display: flex; flex-direction: column; gap: 10px; }
+.inf-act { display: flex; gap: 8px; align-items: center; font: 500 .86rem/1.4 var(--k-fuente); color: var(--k-tinta-2); cursor: pointer; }
+.inf-act input { width: 18px; height: 18px; accent-color: var(--k-marca); }
+.inf-cuentas { display: flex; flex-direction: column; gap: 8px; }
+.inf-fila .rp-fila__f b { font-size: 1.15rem; }
+.inf-fila .rp-fila__n small { font-weight: 400; color: var(--k-tinta-2); }
+.inf-docs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.inf-docs .ins-accion { padding: 6px 10px; font-size: .76rem; }
+.ct-obl summary { cursor: pointer; list-style: none; }
+.ct-obl summary::-webkit-details-marker { display: none; }
+.ct-obl summary::after { content: ' ▸'; color: var(--k-apagado); }
+.ct-obl[open] summary::after { content: ' ▾'; }
+
+/* DRIVE DE HACIENDA */
+.dh { display: flex; flex-direction: column; gap: 10px; }
+.dh-sin { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+.dh-sin__img { width: 64px; height: 64px; object-fit: contain; }
+.dh-sin p { flex: 1 1 240px; margin: 0; font: 400 .9rem/1.5 var(--k-fuente); color: var(--k-tinta-2); }
+.dh-sin p b { color: var(--k-tinta); }
+.dh-abrir { text-decoration: none; display: inline-flex; gap: 6px; align-items: center; flex: 0 0 auto; }
+.dh-migas { display: flex; flex-wrap: wrap; gap: 4px; }
+.dh-miga {
+  appearance: none; border: 0; background: transparent; cursor: pointer; padding: 4px 6px; border-radius: var(--k-r-md);
+  display: inline-flex; gap: 4px; align-items: center; font: 600 .82rem/1.2 var(--k-fuente); color: var(--k-marca);
+}
+:root[data-tema="oscuro"] .dh-miga { color: var(--k-marca-clara); }
+.dh-miga:hover { background: rgba(var(--k-marca-rgb), .08); }
+.dh-lista { display: grid; gap: 8px; }
+@media (min-width: 760px) { .dh-lista { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.dh-item {
+  appearance: none; width: 100%; text-align: left; cursor: pointer;
+  display: grid; grid-template-columns: auto 1fr auto; gap: 4px 10px; align-items: center;
+  font: 500 .88rem/1.35 var(--k-fuente); color: var(--k-tinta);
+}
+.dh-item > svg { color: var(--k-marca); }
+:root[data-tema="oscuro"] .dh-item > svg { color: var(--k-marca-clara); }
+.dh-item__n { overflow-wrap: anywhere; }
+.dh-item__m { grid-column: 2 / -1; color: var(--k-apagado); font-size: .76rem; }
+.dh-item--carpeta { font-weight: 700; }
+
+/* MI FIRMA Y MI FOTO */
+.pf { display: grid; gap: 12px; }
+@media (min-width: 760px) { .pf { grid-template-columns: 1fr 2fr; align-items: start; } }
+.pf-foto { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.pf-firma { display: flex; flex-direction: column; gap: 10px; }
+.pf-marco {
+  min-height: 120px; display: grid; place-items: center; padding: 14px; border-radius: var(--k-r-md);
+  border: 1px dashed var(--k-linea);
+  /* cuadrícula clara para que se vea que el fondo de la firma es transparente */
+  background: repeating-conic-gradient(rgba(var(--k-marca-rgb), .05) 0 25%, transparent 0 50%) 0 0 / 18px 18px, #fff;
+}
+.pf-marco--previa { border-style: solid; border-color: var(--k-marca); }
+.pf-img { max-width: 100%; max-height: 180px; object-fit: contain; }
+.pf-prev { display: flex; flex-direction: column; gap: 8px; }
+.pf-prev .grupo__t { margin: 0; }

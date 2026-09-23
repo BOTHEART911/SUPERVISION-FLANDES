@@ -14,6 +14,15 @@
      · SOLICITUD A PRENSA (prensa.js), sin antelación mínima.
      · Soporte en el menú del perfil (hoja SOPORTE + grupo de desarrollo).
 
+   6.3 · las vistas que faltaban (cada una con su permiso de PERMISOS)
+     · CONTRATISTAS y su ficha (contratistas.js) ........ contratistas
+     · INFORME del contratista (informe.js) ............. descargarInforme
+     · INFORMES FIRMADOS (firmados.js) .................. supervisionFirmados
+     · REPORTE DE SUPERVISIÓN (reporte.js) .............. reportes
+     · REQUERIMIENTOS y COMUNICADOS (los de Contratación) requerimientos / comunicados
+     · DIRECTORIO, DRIVE DE HACIENDA y MI FIRMA Y MI FOTO (institucional.js)
+                                   directorio / driveHacienda / configuracion
+
    Qué ve cada quien lo decide el CORE (SUPERVISION.cuentas): el
    supervisor, SOLO las cuentas de sus contratos; el REVISOR, las del
    supervisor o la secretaría a la que ADMIN lo ató. Aquí no se filtra
@@ -118,7 +127,7 @@
 
     if (window.AYUDA) {
       window.AYUDA.configurar(function () {
-        return { yo: YO, arranque: ARRANQUE, revision: window.REVISION || null, prensa: window.PRENSA_SUP || null };
+        return { yo: YO, arranque: ARRANQUE, revision: window.REVISION || null, prensa: window.PRENSA_SUP || null, vista: vistaActual() };
       });
     }
 
@@ -133,6 +142,17 @@
     }
 
     if (window.PRENSA_SUP) window.PRENSA_SUP.configurar({ app: app, errorCaja: errorCaja });
+
+    /* 6.3 · las vistas nuevas: todas reciben lo mismo */
+    var cOf = { app: app, puede: puede, irA: irA, errorCaja: errorCaja,
+                esDev: function () { return K.norm((YO && YO.rol) || '') === 'DEV'; },
+                yo: function () { return YO || {}; },
+                alcance: function () { return (ARRANQUE && ARRANQUE.alcance) || {}; },
+                miFoto: miFoto, abrirFoto: abrirFoto,
+                alFirma: function (r) { if (YO && r) YO.firma = r.id; } };
+    ['CONTRATISTAS', 'REQS', 'COMUS', 'FIRMADOS', 'REPORTE', 'INFORME', 'INSTITUCIONAL'].forEach(function (m) {
+      if (window[m]) window[m].configurar(cOf);
+    });
 
     K.cuando('kit:foto', function (r) {
       YO.imagen = r.url || '';
@@ -180,6 +200,8 @@
       foto: miFoto(200),
       menu: [
         { texto: 'Foto de perfil', al: abrirFoto },
+        /* 6.3 · la firma del informe */
+        { texto: 'Mi firma y mi foto', al: function () { irA('perfil'); } },
         { texto: 'Actualizar contraseña', al: function () { K.piezas.sesion.cambiarClave(); } },
         { texto: 'Instalar la app', al: function () { K.piezas.instalar.abrir(); } },
         /* 5.1.1 · soporte en TODAS las apps: se guarda en la hoja SOPORTE
@@ -204,6 +226,10 @@
     if (K.piezas.insights) K.piezas.insights.quitar();
     if (window.REVISION) window.REVISION.olvidar();
     if (window.PRENSA_SUP) window.PRENSA_SUP.olvidar();
+    ['CONTRATISTAS', 'REQS', 'COMUS', 'FIRMADOS', 'REPORTE', 'INFORME', 'INSTITUCIONAL'].forEach(function (m) {
+      if (window[m] && window[m].olvidar) window[m].olvidar();
+    });
+    if (window.OFICINA && window.OFICINA.olvidarDocs) window.OFICINA.olvidarDocs();
     K.piezas.sesion.salir();
     location.hash = '';
   }
@@ -214,21 +240,46 @@
     inicio: vistaInicio,
     revisar: function () { window.REVISION.lista(); },
     cuenta: function (sub) { window.REVISION.detalle(sub); },
-    prensa: function (sub) { window.PRENSA_SUP.vista(sub); }
+    prensa: function (sub) { window.PRENSA_SUP.vista(sub); },
+    /* 6.3 */
+    contratistas: function (sub) { window.CONTRATISTAS.lista(sub); },
+    contratista: function (sub) { window.CONTRATISTAS.detalle(sub); },
+    informe: function (sub) { window.INFORME.vista(sub); },
+    firmados: function () { window.FIRMADOS.vista(); },
+    reporte: function () { window.REPORTE.vista(); },
+    requerimientos: function () { window.REQS.vista(); },
+    comunicados: function () { window.COMUS.vista(); },
+    directorio: function () { window.INSTITUCIONAL.directorio(); },
+    drive: function () { window.INSTITUCIONAL.drive(); },
+    perfil: function () { window.INSTITUCIONAL.perfil(); }
   };
 
   var titulos = {
     inicio: 'Supervisión',
     revisar: 'CUENTAS',
     cuenta: 'CUENTA',
-    prensa: 'SOLICITUD A PRENSA'
+    prensa: 'SOLICITUD A PRENSA',
+    contratistas: 'CONTRATISTAS',
+    contratista: 'CONTRATISTA',
+    informe: 'INFORME DE CUENTAS',
+    firmados: 'INFORMES FIRMADOS',
+    reporte: 'REPORTE',
+    requerimientos: 'REQUERIMIENTOS',
+    comunicados: 'COMUNICADOS',
+    directorio: 'DIRECTORIO',
+    drive: 'DRIVE DE HACIENDA',
+    perfil: 'MI FIRMA Y MI FOTO'
   };
 
   /* El permiso de cada vista (llave PERMISOS de CONFIG). El CORE lo vuelve
      a exigir en cada llamada: esto solo evita pintar lo que no se puede. */
-  var PERMISO = { revisar: 'revisarCuentas', cuenta: 'revisarCuentas', prensa: 'solicitudPrensa' };
+  var PERMISO = { revisar: 'revisarCuentas', cuenta: 'revisarCuentas', prensa: 'solicitudPrensa',
+                  contratistas: 'contratistas', contratista: 'contratistas', informe: 'descargarInforme',
+                  firmados: 'supervisionFirmados', reporte: 'reportes', requerimientos: 'requerimientos',
+                  comunicados: 'comunicados', directorio: 'directorio', drive: 'driveHacienda', perfil: 'configuracion' };
 
   function irA(v) { location.hash = '#/' + v; }
+  var DE_DONDE = 'inicio';   /* el informe vuelve a la vista de la que salió (reporte o contratistas) */
 
   /** El nombre de la vista donde está la persona: va en la solicitud de soporte. */
   function vistaActual() {
@@ -248,8 +299,12 @@
     var resto = partes.slice(1).join('/');
     K.piezas.banner.atras(v === 'inicio' ? null : function () {
       if (v === 'cuenta') irA('revisar');
+      else if (v === 'contratista') irA('contratistas');
+      else if (v === 'informe' && DE_DONDE === 'reporte') irA('reporte');
+      else if (v === 'informe') irA('contratistas');
       else irA('inicio');
     });
+    if (v !== 'informe') DE_DONDE = v;
 
     app.innerHTML = '';
     if (window.AYUDA) window.AYUDA.montar(v);
@@ -298,16 +353,44 @@
           'img/procesos_de_cuenta.webp', function () { abrirLista({ est: 'REPORTADA' }); });
         accPlan = acceso('PLAN DE PAGOS', 'Firma el informe de supervisión y acepta el plan de pagos',
           'img/tramites_y_solicitudes.webp', function () { abrirLista({ est: 'PLAN DE PAGOS' }); });
-        bloque('CUENTAS', [accRev, accPlan]);
+        var tCuentas = [accRev, accPlan];
+        /* 6.3 · la imagen de cada acceso dice lo que hace: una carpeta con
+           documentos para lo firmado y el PDF para el reporte */
+        if (puede('supervisionFirmados')) tCuentas.push(acceso('INFORMES FIRMADOS', 'Cada informe de supervisión firmado, con su PDF y el acta final',
+          'img/carpeta_drive.webp', function () { irA('firmados'); }));
+        if (puede('reportes')) tCuentas.push(acceso('REPORTE', 'Todas las cuentas de tu supervisión, de la radicación al pago, en PDF o Excel',
+          'img/pdf.webp', function () { irA('reporte'); }));
+        bloque('CUENTAS', tCuentas);
       }
     }
 
-    if (puede('solicitudPrensa')) {
-      bloque('OFICINA', [
-        acceso('SOLICITUD A PRENSA', 'Fotos, video, piezas gráficas o publicaciones para tu secretaría, sin antelación mínima',
-          'img/comunicaciones.webp', function () { irA('prensa'); })
-      ]);
+    /* 6.3 · contratistas: la ficha, el informe de sus cuentas y lo que se les pide */
+    if (al.tipo !== 'NADA') {
+      var tGente = [];
+      if (puede('contratistas')) tGente.push(acceso('CONTRATISTAS', 'Los contratos de tu supervisión: ficha, plazo, WhatsApp y Drive',
+        'img/contratista.webp', function () { irA('contratistas'); }));
+      if (puede('descargarInforme') && puede('contratistas')) tGente.push(acceso('DESCARGAR INFORME', 'Las cuentas de un contratista en PDF (informe) o Excel (todas las columnas)',
+        'img/datos_de_procesos.webp', function () { K.aviso('Toca Informe en la tarjeta del contratista.', 'info', 3500); irA('contratistas'); }));
+      if (puede('requerimientos')) tGente.push(acceso('REQUERIMIENTOS', 'Pídele algo a uno o a varios contratistas y sigue si ya lo atendieron',
+        'img/notificacion.webp', function () { irA('requerimientos'); }));
+      if (tGente.length) bloque('CONTRATISTAS', tGente);
     }
+
+    var tOf = [];
+    if (puede('solicitudPrensa')) tOf.push(acceso('SOLICITUD A PRENSA', 'Fotos, video, piezas gráficas o publicaciones para tu secretaría, sin antelación mínima',
+      'img/comunicaciones.webp', function () { irA('prensa'); }));
+    if (puede('comunicados')) tOf.push(acceso('COMUNICADOS', 'Publica avisos con documentos: llegan como notificación al teléfono de los contratistas',
+      'img/chat.webp', function () { irA('comunicados'); }));
+    if (puede('driveHacienda') && ARRANQUE && ARRANQUE.driveHacienda) tOf.push(acceso('DRIVE DE HACIENDA', 'La carpeta compartida de la Secretaría de Hacienda',
+      'img/drive.webp', function () { irA('drive'); }));
+    if (tOf.length) bloque('OFICINA', tOf);
+
+    var tInst = [];
+    if (puede('directorio')) tInst.push(acceso('DIRECTORIO INSTITUCIONAL', 'Dónde queda cada dependencia, sus correos y teléfonos',
+      'img/institucional.webp', function () { irA('directorio'); }));
+    if (puede('configuracion')) tInst.push(acceso('MI FIRMA Y MI FOTO', 'La firma que sale en tus informes y tu foto de perfil',
+      'img/imagen.webp', function () { irA('perfil'); }));
+    if (tInst.length) bloque('INSTITUCIONAL', tInst);
 
     var destino = K.nodo('<section class="resumen"></section>');
     if (accRev) {
