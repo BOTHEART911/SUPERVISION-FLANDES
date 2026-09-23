@@ -142,6 +142,7 @@
             } },
           { texto: '¿Cuadran los saldos?', responde: function () {
               var r = RV(), d = r && r._detalle(); if (!d) return 'La cuenta todavía está cargando.';
+              if (d.historialPendiente) return 'El historial del contrato todavía está llegando: pregunta de nuevo en un momento.';
               var k = d.cuenta.campos || {}, h = d.historial || [];
               var s = K.aNumero(k.saldo), c = K.aNumero(k.cobro), n = K.aNumero(k.nuevoSaldo);
               var t = 'Saldo **' + pesos(s) + '** − cobro **' + pesos(c) + '** = ' + pesos(s - c) + (Math.abs(s - c - n) > 1 ? ' ⚠ y declaró **' + pesos(n) + '**.' : ' ✓');

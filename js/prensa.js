@@ -173,6 +173,10 @@
 
     f.appendChild(K.nodo('<h3 class="grupo__t grupo__t--sub">Quién lo pide</h3>'));
     f.appendChild(K.nodo('<div class="dato"><span class="dato__e">Nombre</span><span class="dato__v">' + K.esc(nombre(P.nombre)) + '</span></div>'));
+    /* 7.0 · un revisor pide a nombre del supervisor: se le dice, y queda quién la registró */
+    if (P.registra && K.norm(P.registra) !== K.norm(P.nombre)) {
+      f.appendChild(K.nodo('<p class="formulario__nota">Sale a nombre de ' + K.esc(nombre(P.nombre)) + '. Queda registrado que la hiciste tú (' + K.esc(nombre(P.registra)) + ').</p>'));
+    }
     var secs = P.secretarias || [];
     var sel = K.nodo('<select></select>');
     secs.forEach(function (s) {

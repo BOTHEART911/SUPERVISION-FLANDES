@@ -66,12 +66,15 @@
      pintada (el inicio, la lista), NO se reemplaza la pantalla: era lo que la
      dejaba en blanco si 'inicio' fallaba (el esqueleto se llevaba el saludo
      y al quitarlo no quedaba nada). */
-  function arranque(conEsqueleto) {
-    var quitar = (conEsqueleto && K.piezas.esqueletos && app)
+  /* 7.0 · el login trae el arranque (pre.arranque) en el mismo viaje: un viaje
+     a Apps Script cuesta ~2 s de transporte y entrar eran dos seguidos. */
+  function arranque(conEsqueleto, pre) {
+    var yaVino = pre && pre.arranque ? pre.arranque : null;
+    var quitar = (!yaVino && conEsqueleto && K.piezas.esqueletos && app)
       ? K.piezas.esqueletos.poner(app, { forma: 'ficha', cuantos: 1, sitio: 'reemplaza', espera: 'Cargando tu supervisión' })
       : function () {};
 
-    return leer('inicio').then(function (d) {
+    return (yaVino ? Promise.resolve(yaVino) : leer('inicio')).then(function (d) {
       ARRANQUE = d;
       YO = d.yo || YO;
       if (d.personas && K.piezas.personas) K.piezas.personas.cargar(d.personas);
@@ -103,7 +106,8 @@
         titulo: 'SUPERVISIÓN',
         sub: 'Ingresa con tu documento y contraseña',
         imagen: M.APP_ICON || 'img/icono-512.png',
-        comprobar: function () { return arranque(true).then(function (d) { return d.yo; }); },
+        arranqueEnLogin: true,   /* 7.0: el login trae el inicio en el mismo viaje */
+        comprobar: function (login) { return arranque(true, login).then(function (d) { return d.yo; }); },
         alEntrar: arrancar
       });
     });

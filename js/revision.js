@@ -389,7 +389,13 @@
 
     if (!q.fila || !q.id) { caja.appendChild(C.errorCaja(new Error('Falta la cuenta.'), function () { C.irA('revisar'); })); return; }
 
-    var p = leer('cuentaRevision', q);
+    /* 7.0 · el detalle viene 'ligero' (sin historial ni historia de APROBADAS:
+       ~2 s menos de servidor) y esas dos cosas llegan EN PARALELO por
+       'cuentaHistorial'. Solo se ven en Pago, Planilla y Bitácora. */
+    var p = leer('cuentaRevision', { fila: q.fila, id: q.id, informe: q.informe, ligero: true });
+    var pH = leer('cuentaHistorial', q);
+    pH['catch'](function () {});        /* el error lo atiende recibirHistorial (o no importa: CORE viejo) */
+    HIST_P = pH;
     /* 5.4 · pdf.js y su trabajador se bajan ya, no con el primer documento */
     if (K.piezas.visor && K.piezas.visor.precalentar) K.piezas.visor.precalentar();
     /* la carpeta se pide a la vez: tarda más (Drive) y no frena lo demás.
@@ -407,9 +413,77 @@
     }, function () { CARPETA = { carpeta: false, grupos: [], error: true }; if (D) repintarDocs(); return CARPETA; });
 
     K.piezas.esqueletos.mientras(caja, p, { forma: 'texto', cuantos: 8 })
-      .then(function (d) { D = d; iniciarBitacora(); pintar(caja); if (CARPETA) precargar(); })
+      .then(function (d) { D = d; iniciarBitacora(); pintar(caja); if (CARPETA) precargar(); recibirHistorial(pH, d); })
       ['catch'](function (e) { caja.appendChild(C.errorCaja(e, function () { C.app.innerHTML = ''; detalle(sub); })); });
   }
+
+  /* ---------- 7.0 · el historial, por su lado ---------- */
+
+  var HIST_P = null;
+
+  function recibirHistorial(pH, d) {
+    if (!d || !d.historialPendiente) return;          /* CORE viejo: ya vino completo */
+    pH.then(function (r) {
+      if (D !== d) return;                            /* ya se abrió otra cuenta */
+      d.historial = (r && r.historial) || [];
+      d.traza = d.traza || {};
+      d.traza.eventos = (r && r.eventos) || [];
+      d.historialPendiente = false;
+      d.historialError = false;
+      repintarHistorial();
+    }, function () {
+      if (D !== d) return;
+      d.historialError = true;
+      repintarHistorial();
+    });
+  }
+
+  function reintentarHistorial() {
+    if (!D) return;
+    var d = D;
+    d.historialError = false;
+    d.historialPendiente = true;
+    repintarHistorial();
+    var pH = leer('cuentaHistorial', { fila: d.cuenta.fila, id: d.cuenta.idContrato, informe: d.cuenta.informe });
+    pH['catch'](function () {});
+    HIST_P = pH;
+    recibirHistorial(pH, d);
+  }
+
+  /** Solo se repinta si la persona está en una pestaña que lo muestra. */
+  function repintarHistorial() {
+    if (!ZONA || !B) return;
+    var k = B.posicion.seccion;
+    if (k === 'bitacora') {
+      /* en la Bitácora solo se cambia la tarjeta de la historia: repintar
+         toda la pestaña te movería de donde estás escribiendo */
+      var viejo = ZONA.querySelector('.rv-hist--espera');
+      if (viejo) viejo.parentNode.replaceChild(historia(), viejo);
+      return;
+    }
+    if (k === 'pago' || k === 'planilla') {
+      var y = window.scrollY;
+      irSeccion(k, 0, false, true);
+      window.scrollTo(0, y);
+    }
+  }
+
+  /** Mientras el historial viene en camino (o si falló). */
+  function esperaHistorial(titulo) {
+    var caja = K.nodo('<section class="kit-tarjeta grupo rv-hist rv-hist--espera"><h3 class="grupo__t">' + K.esc(titulo) + '</h3></section>');
+    if (D.historialError) {
+      caja.appendChild(K.nodo('<p class="formulario__nota">No se pudo traer el historial del contrato.</p>'));
+      var b = K.nodo('<button type="button" class="kit-btn kit-btn--plano">' + K.icono('recargar', 15) + ' Reintentar</button>');
+      b.addEventListener('click', reintentarHistorial);
+      caja.appendChild(b);
+    } else {
+      caja.appendChild(K.nodo('<p class="formulario__nota">Trayendo el historial del contrato…</p>'));
+      if (K.piezas.esqueletos) K.piezas.esqueletos.poner(caja, { forma: 'texto', cuantos: 2 });
+    }
+    return caja;
+  }
+
+  function historialEnCamino() { return !!(D && (D.historialPendiente || D.historialError)); }
 
   /* ---------- la bitácora en el teléfono ---------- */
 
@@ -1030,6 +1104,7 @@
   function numeroDe(v) { return K.aNumero ? K.aNumero(v) : Number(String(v || '').replace(/\D/g, '')) || 0; }
 
   function chequeos() {
+    if (historialEnCamino()) return esperaHistorial('Chequeo de saldos');
     var k = D.cuenta.campos || {}, h = D.historial || [];
     var avisos = [];
     var saldo = numeroDe(k.saldo), cobro = numeroDe(k.cobro), nuevo = numeroDe(k.nuevoSaldo);
@@ -1059,6 +1134,7 @@
   }
 
   function tablaPagos() {
+    if (historialEnCamino()) return esperaHistorial('Historial de pagos del contrato');
     var h = D.historial || [];
     var caja = K.nodo('<section class="kit-tarjeta grupo rv-hist"><h3 class="grupo__t">Historial de pagos del contrato</h3></section>');
     if (!h.length) { caja.appendChild(K.nodo('<p class="formulario__nota">Sin cuentas anteriores.</p>')); return caja; }
@@ -1074,6 +1150,7 @@
   }
 
   function tablaPlanillas() {
+    if (historialEnCamino()) return esperaHistorial('Historial de planillas (con anexas)');
     var h = (D.historial || []).filter(function (x) { return x.planilla || x.anexa; });
     var caja = K.nodo('<section class="kit-tarjeta grupo rv-hist"><h3 class="grupo__t">Historial de planillas (con anexas)</h3></section>');
     if (!h.length) { caja.appendChild(K.nodo('<p class="formulario__nota">Sin planillas anteriores.</p>')); return caja; }
@@ -1219,6 +1296,7 @@
   }
 
   function historia() {
+    if (historialEnCamino()) return esperaHistorial('Historia de la cuenta · quién y cuándo');
     var cu = D.cuenta, t = D.traza || {};
     var ev = [];
     if (cu.radicada) ev.push({ f: cu.radicada, e: 'RADICADA', q: cu.nombre, m: '' });
