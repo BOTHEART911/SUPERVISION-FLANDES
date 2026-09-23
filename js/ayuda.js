@@ -115,7 +115,7 @@
               var c = porEstado('PLAN DE PAGOS');
               if (!c.length) return 'No hay planes de pago esperando.';
               return listaCorta(c, function (x) {
-                return '· **' + nombre(x.nombre) + '** — ' + (x.informeSup ? 'informe firmado, falta aceptar el plan' : 'falta firmar el informe') + (x.ultimo ? ' (última cuenta: lleva acta)' : '');
+                return '· **' + nombre(x.nombre) + '** — ' + (x.informeSup ? 'informe firmado, falta aceptar el plan' : 'falta firmar el informe') + (x.ultimo ? (x.acta ? ' (última cuenta: acta firmada)' : ' (última cuenta: falta el acta de cumplimiento)') : '');
               }, 8);
             } }
         ]

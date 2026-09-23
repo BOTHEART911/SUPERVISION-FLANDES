@@ -345,7 +345,7 @@
     if (c.estado === 'PLAN DE PAGOS') {
       marcas.push('<span class="ct-marca' + (c.informeSup ? ' sp-marca--ok' : '') + '">' + K.icono(c.informeSup ? 'check' : 'documento', 11) +
         (c.informeSup ? ' INFORME FIRMADO' : ' FALTA EL INFORME') + '</span>');
-      if (c.ultimo) marcas.push('<span class="ct-marca">' + K.icono('info', 11) + (c.acta ? ' ACTA LISTA' : ' ÚLTIMA CUENTA: LLEVA ACTA') + '</span>');
+      if (c.ultimo) marcas.push('<span class="ct-marca' + (c.acta ? ' sp-marca--ok' : '') + '">' + K.icono(c.acta ? 'check' : 'documento', 11) + (c.acta ? ' ACTA FIRMADA' : ' ÚLTIMA CUENTA: FALTA EL ACTA') + '</span>');
     }
     t.appendChild(K.nodo('<div class="ct-t__marcas">' + marcas.join('') + '</div>'));
     if (c.observacion) {
@@ -558,7 +558,8 @@
         '<span><b>Plan de pagos.</b> El contratista ya reportó el plan en el SECOP II. ' +
         (cu.informeSup ? 'El informe de supervisión ya está firmado: revísalo y acepta el plan de pagos.'
                        : 'Firma el informe de supervisión y después acepta el plan de pagos.') +
-        (cu.ultimo ? ' Es la <b>última cuenta</b> del contrato: lleva además el acta de cumplimiento.' : '') + '</span></p>'));
+        (cu.ultimo ? ' Es la <b>última cuenta</b> del contrato: lleva además el <b>acta de cumplimiento</b>' +
+          (cu.acta ? ', que ya está firmada.' : '. Fírmala antes de aceptar el plan.') : '') + '</span></p>'));
     } else if (!cu.porRevisar) {
       caja.appendChild(K.nodo('<p class="kit-tarjeta rv-aviso' + (estadoTono(cu.estado) === 'malo' ? ' rv-aviso--malo' : '') + '">' + K.icono('info', 18) +
         '<span>Esta cuenta está <b>' + K.esc(estadoTexto(cu.estado)) + '</b>. Puedes mirarla, pero ya no se guardan notas ni decisiones.</span></p>'));
@@ -1360,18 +1361,33 @@
     var cu = D.cuenta;
     if (cu.informeSup) {
       var ver = K.nodo('<button type="button" class="kit-btn rv-barra__g">' + K.icono('pdf', 16) + ' Ver el informe</button>');
-      ver.addEventListener('click', verInforme);
+      ver.addEventListener('click', function () { verInforme(); });
       BARRA.appendChild(ver);
+    }
+    if (cu.ultimo && cu.acta) {
+      var va = K.nodo('<button type="button" class="kit-btn rv-barra__g sp-barra__acta">' + K.icono('pdf', 16) + ' Ver el acta</button>');
+      va.addEventListener('click', function () { verActa(); });
+      BARRA.appendChild(va);
     }
     if (!D.puedeDecidir) {
       BARRA.appendChild(K.nodo('<p class="rv-barra__nota">El informe sale firmado a nombre del supervisor: lo firma y acepta el plan quien tiene ese permiso.</p>'));
       return;
     }
     var f = K.nodo('<button type="button" class="kit-btn' + (cu.informeSup ? '' : ' kit-btn--marca') + ' rv-barra__g">' + K.icono('lapiz', 16) +
-      (cu.informeSup ? ' Volver a firmar' : ' Firmar informe de supervisión') + '</button>');
+      (cu.informeSup ? ' Volver a firmar el informe' : ' Firmar informe de supervisión') + '</button>');
     f.addEventListener('click', firmarInforme);
     BARRA.appendChild(f);
-    var falta = !cu.informeSup ? 'Primero firma el informe.' : (cu.ultimo && !cu.acta ? 'Última cuenta: falta el acta de cumplimiento (entrega 6.2).' : '');
+    /* 6.2: la ULTIMA cuenta lleva ademas el acta de cumplimiento */
+    if (cu.ultimo) {
+      var fa = K.nodo('<button type="button" class="kit-btn' + (cu.acta ? '' : ' kit-btn--marca') + ' rv-barra__g sp-barra__acta">' + K.icono('documento', 16) +
+        (cu.acta ? ' Volver a firmar el acta' : ' Firmar acta de cumplimiento') + '</button>');
+      fa.addEventListener('click', firmarActa);
+      BARRA.appendChild(fa);
+    }
+    var faltan = [];
+    if (!cu.informeSup) faltan.push('el informe de supervisión');
+    if (cu.ultimo && !cu.acta) faltan.push('el acta de cumplimiento');
+    var falta = faltan.length ? 'Para aceptar el plan falta firmar ' + faltan.join(' y ') + '.' : '';
     var a = K.nodo('<button type="button" class="kit-btn kit-btn--marca rv-barra__d"' + (falta ? ' disabled' : '') + '>' + K.icono('check', 16) + ' Aceptar plan de pagos</button>');
     a.addEventListener('click', aceptarPlan);
     BARRA.appendChild(a);
@@ -1402,6 +1418,72 @@
     }], { indice: 0 });
   }
 
+  function verActa(bytes) {
+    var cu = D.cuenta;
+    if (!K.piezas.visor) return;
+    var id = cu.acta;
+    K.piezas.visor.abrir([{
+      titulo: 'Acta de cumplimiento · cuenta ' + cu.informe,
+      tipo: 'pdf',
+      cargar: function () {
+        if (bytes && bytes.length) return Promise.resolve({ bytes: bytes, mime: 'application/pdf', tipo: 'pdf', nombre: 'Acta de cumplimiento.pdf' });
+        var R = window.DOCS_REV;
+        var rapido = R ? R.pedir(id) : null;
+        var viejo = function () { return leer('revisionDocumento', { fila: cu.fila, id: cu.idContrato, informe: cu.informe, archivo: id }); };
+        return rapido ? rapido['catch'](viejo) : viejo();
+      }
+    }], { indice: 0 });
+  }
+
+  /* 6.2 · ACTA DE CUMPLIMIENTO: primero se trae el balance para confirmarlo, luego se firma */
+  function firmarActa() {
+    var cu = D.cuenta;
+    var q = { fila: cu.fila, id: cu.idContrato, informe: cu.informe };
+    K.ocupado = true;
+    K.aviso('Calculando el balance del contrato…', 'info', 2500);
+    leer('actaPrevia', q).then(function (p) {
+      K.ocupado = false;
+      var lista = [
+        ['Contratista', nombre(cu.nombre)],
+        ['Contrato', cu.contrato + ' · cuenta ' + cu.informe + ' de ' + (cu.total || '—')],
+        ['Informes de supervisión', p.cuentas || '—'],
+        ['Valor total del contrato', p.valorFin || '—'],
+        ['Ejecutado y recibido', p.ejecutado || '$ 0'],
+        ['Ejecutado y no pagado', p.deuda || '$ 0'],
+        ['Saldo por liberar', p.sobrante || '$ 0'],
+        ['Firma', nombre(p.supervisor || cu.supervisor) + ' (supervisor del contrato)']
+      ];
+      var nota = (cu.acta ? 'El acta anterior se reemplaza por una nueva con estos valores. ' : 'Se guarda en la carpeta de la cuenta y queda lista para el SECOP II. ') +
+        (p.huecos && p.huecos.length ? 'Ojo: en la hoja no aparece ' + (p.huecos.length === 1 ? 'la cuenta ' : 'las cuentas ') + p.huecos.join(', ') + ' de este contrato.' : '');
+      return K.piezas.confirmar.abrir({
+        titulo: cu.acta ? '¿Volver a firmar el acta?' : 'Firmar el acta de cumplimiento',
+        lista: lista, nota: nota, si: 'Firmar', no: 'Cancelar'
+      });
+    }, function (e) {
+      K.ocupado = false;
+      K.aviso((e && e.message) || 'No se pudo calcular el balance del acta.', 'malo', 9000);
+      return false;
+    }).then(function (ok) {
+      if (!ok) return;
+      K.ocupado = true;
+      K.piezas.guardado.mientras(K.pedir('firmarActa', q, { ms: 120000 }), {
+        titulo: 'Firmando el acta de cumplimiento', sub: 'Se arma con la plantilla y se guarda en la carpeta de la cuenta. No cierres la app.',
+        pasos: ['Sumando las cuentas del contrato…', 'Llenando la plantilla…', 'Poniendo la firma…', 'Convirtiendo a PDF…', 'Guardando en la carpeta…'],
+        listo: { titulo: 'Acta firmada', paso: cu.informeSup ? 'Ya puedes aceptar el plan' : 'Falta firmar el informe' }
+      }).then(function (r) {
+        K.ocupado = false;
+        cu.acta = r.id;
+        LISTA = null;
+        repintarTodo();
+        var bytes = r.l1 ? aBytes(r.l1) : null;
+        setTimeout(function () { verActa(bytes); }, 400);
+      }, function (e) {
+        K.ocupado = false;
+        K.aviso((e && e.message) || 'No se pudo firmar el acta.', 'malo', 9000);
+      });
+    });
+  }
+
   function firmarInforme() {
     var cu = D.cuenta;
     K.piezas.confirmar.abrir({
@@ -1425,7 +1507,7 @@
         K.ocupado = false;
         cu.informeSup = r.id;
         LISTA = null;
-        pintarBarra();
+        repintarTodo();
         var bytes = r.l1 ? aBytes(r.l1) : null;
         setTimeout(function () { verInforme(bytes); }, 400);
       }, function (e) {
