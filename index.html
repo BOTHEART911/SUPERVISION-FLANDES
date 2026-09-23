@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#06402B">
+<meta name="description" content="App de Supervisión de la Alcaldía de Flandes: revisión de cuentas, visto bueno, plan de pagos e informe de supervisión.">
+<title>Supervisión · Alcaldía de Flandes</title>
+
+<!-- Las fuentes del kit (IBM Plex Sans y Sora). display=swap: el texto se
+     ve desde el primer instante aunque la fuente llegue después. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Sora:wght@600;700;800&display=swap">
+<link rel="manifest" href="manifest.json">
+<!-- El icono es el escudo de SUPERVISION APP-DIGITAL que entregó Oss (23/09/2026).
+     El de 32 va en la pestaña; el de 180 va SIN transparencia porque iOS
+     pinta de negro lo transparente. -->
+<link rel="icon" type="image/png" sizes="32x32" href="img/icono-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="img/icono-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="img/icono-180.png">
+
+<!-- El kit primero: base.css define los colores de los dos temas -->
+<link rel="stylesheet" href="kit/base.css">
+<link rel="stylesheet" href="kit/banner.css">
+<link rel="stylesheet" href="kit/sesion.css">
+<link rel="stylesheet" href="kit/esqueletos.css">
+<link rel="stylesheet" href="kit/guardado.css">
+<link rel="stylesheet" href="kit/conexion.css">
+<link rel="stylesheet" href="kit/instalar.css">
+<link rel="stylesheet" href="kit/antidoble.css">
+<link rel="stylesheet" href="kit/creditos.css">
+<link rel="stylesheet" href="kit/bienvenida.css">
+<link rel="stylesheet" href="kit/cielo.css">
+<link rel="stylesheet" href="kit/visor.css">
+<link rel="stylesheet" href="kit/insights.css">
+<link rel="stylesheet" href="kit/personas.css">
+<!-- 5.1.1: soporte (con hasta 3 capturas) -->
+<link rel="stylesheet" href="kit/adjuntos.css">
+<link rel="stylesheet" href="kit/soporte.css">
+<link rel="stylesheet" href="kit/fechas.css">
+<!-- 5.3: evidencias con zoom en la revisión de cuentas -->
+<link rel="stylesheet" href="kit/carrusel.css">
+<link rel="stylesheet" href="kit/exportar.css">
+<link rel="stylesheet" href="styles.css">
+
+<!-- version.js antes que el kit: la pieza de versión lee APP_VERSION al cargarse -->
+<script src="version.js"></script>
+
+<!-- js/marca.js SIEMPRE antes que kit.js: de ahí salen API_URL y el resto -->
+<script src="js/marca.js"></script>
+<script src="kit/kit.js"></script>
+<!-- iconos.js antes que las demás piezas: todas pintan con K.icono() -->
+<script src="kit/iconos.js"></script>
+<script src="kit/confirmar.js"></script>
+<script src="kit/version.js"></script>
+<script src="kit/banner.js"></script>
+<script src="kit/sesion.js"></script>
+<script src="kit/esqueletos.js"></script>
+<script src="kit/guardado.js"></script>
+<script src="kit/conexion.js"></script>
+<script src="kit/instalar.js"></script>
+<script src="kit/antidoble.js"></script>
+<script src="kit/creditos.js"></script>
+<script src="kit/avisos.js"></script>
+<script src="kit/bienvenida.js"></script>
+<script src="kit/cielo.js"></script>
+<script src="kit/visor.js"></script>
+<script src="kit/listas.js"></script>
+<script src="kit/insights.js"></script>
+<script src="kit/pastillas.js"></script>
+<!-- personas.js antes que perfil.js: perfil pinta con avatar() -->
+<script src="kit/personas.js"></script>
+<script src="kit/perfil.js"></script>
+<!-- 5.1.1: soporte. imagenes.js reduce las capturas antes de subirlas -->
+<script src="kit/adjuntos.js"></script>
+<script src="kit/imagenes.js"></script>
+<script src="kit/soporte.js"></script>
+<script src="kit/fechas.js"></script>
+<script src="kit/carrusel.js"></script>
+<script src="kit/exportar.js"></script>
+</head>
+
+<body>
+  <main id="app" class="app"></main>
+  <!-- las vistas y ayuda.js antes que app.js: app.js las enruta -->
+  <script src="js/docs-revision.js"></script>
+  <script src="js/revision.js"></script>
+  <script src="js/prensa.js"></script>
+  <script src="js/ayuda.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
