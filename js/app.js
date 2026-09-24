@@ -11,7 +11,7 @@
      · CUENTAS DE MI SUPERVISIÓN (revision.js): la lista con pastillas, el
        detalle, la bitácora, el visto bueno del revisor, la decisión y el
        plan de pagos con el informe de supervisión.
-     · SOLICITUD A PRENSA (prensa.js), sin antelación mínima.
+     · SOLICITUD A COMUNICACIONES (comunicaciones.js), sin antelación mínima.
      · Soporte en el menú del perfil (hoja SOPORTE + grupo de desarrollo).
 
    6.3 · las vistas que faltaban (cada una con su permiso de PERMISOS)
@@ -131,7 +131,7 @@
 
     if (window.AYUDA) {
       window.AYUDA.configurar(function () {
-        return { yo: YO, arranque: ARRANQUE, revision: window.REVISION || null, prensa: window.PRENSA_SUP || null, vista: vistaActual() };
+        return { yo: YO, arranque: ARRANQUE, revision: window.REVISION || null, comunicaciones: window.COMUNICACIONES_SUP || null, vista: vistaActual() };
       });
     }
 
@@ -146,7 +146,7 @@
       });
     }
 
-    if (window.PRENSA_SUP) window.PRENSA_SUP.configurar({ app: app, errorCaja: errorCaja });
+    if (window.COMUNICACIONES_SUP) window.COMUNICACIONES_SUP.configurar({ app: app, errorCaja: errorCaja });
 
     /* 6.3 · las vistas nuevas: todas reciben lo mismo */
     var cOf = { app: app, puede: puede, irA: irA, errorCaja: errorCaja,
@@ -240,7 +240,7 @@
     if (K.piezas.avisos) K.piezas.avisos.olvidar();
     if (K.piezas.insights) K.piezas.insights.quitar();
     if (window.REVISION) window.REVISION.olvidar();
-    if (window.PRENSA_SUP) window.PRENSA_SUP.olvidar();
+    if (window.COMUNICACIONES_SUP) window.COMUNICACIONES_SUP.olvidar();
     ['CONTRATISTAS', 'REQS', 'COMUS', 'FIRMADOS', 'REPORTE', 'INFORME', 'INSTITUCIONAL'].forEach(function (m) {
       if (window[m] && window[m].olvidar) window[m].olvidar();
     });
@@ -255,7 +255,7 @@
     inicio: vistaInicio,
     revisar: function () { window.REVISION.lista(); },
     cuenta: function (sub) { window.REVISION.detalle(sub); },
-    prensa: function (sub) { window.PRENSA_SUP.vista(sub); },
+    comunicaciones: function (sub) { window.COMUNICACIONES_SUP.vista(sub); },
     /* 6.3 */
     contratistas: function (sub) { window.CONTRATISTAS.lista(sub); },
     contratista: function (sub) { window.CONTRATISTAS.detalle(sub); },
@@ -273,7 +273,7 @@
     inicio: 'Supervisión',
     revisar: 'CUENTAS',
     cuenta: 'CUENTA',
-    prensa: 'SOLICITUD A PRENSA',
+    comunicaciones: 'SOLICITUD A COMUNICACIONES',
     contratistas: 'CONTRATISTAS',
     contratista: 'CONTRATISTA',
     informe: 'INFORME DE CUENTAS',
@@ -288,7 +288,7 @@
 
   /* El permiso de cada vista (llave PERMISOS de CONFIG). El CORE lo vuelve
      a exigir en cada llamada: esto solo evita pintar lo que no se puede. */
-  var PERMISO = { revisar: 'revisarCuentas', cuenta: 'revisarCuentas', prensa: 'solicitudPrensa',
+  var PERMISO = { revisar: 'revisarCuentas', cuenta: 'revisarCuentas', comunicaciones: 'solicitudComunicaciones',
                   contratistas: 'contratistas', contratista: 'contratistas', informe: 'descargarInforme',
                   firmados: 'supervisionFirmados', reporte: 'reportes', requerimientos: 'requerimientos',
                   comunicados: 'comunicados', directorio: 'directorio', drive: 'driveHacienda', perfil: 'configuracion' };
@@ -392,8 +392,8 @@
     }
 
     var tOf = [];
-    if (puede('solicitudPrensa')) tOf.push(acceso('SOLICITUD A PRENSA', 'Fotos, video, piezas gráficas o publicaciones para tu secretaría, sin antelación mínima',
-      'img/comunicaciones.webp', function () { irA('prensa'); }));
+    if (puede('solicitudComunicaciones')) tOf.push(acceso('SOLICITUD A COMUNICACIONES', 'Fotos, video, piezas gráficas o publicaciones para tu secretaría, sin antelación mínima',
+      'img/comunicaciones.webp', function () { irA('comunicaciones'); }));
     if (puede('comunicados')) tOf.push(acceso('COMUNICADOS', 'Publica avisos con documentos: llegan como notificación al teléfono de los contratistas',
       'img/chat.webp', function () { irA('comunicados'); }));
     if (puede('driveHacienda') && ARRANQUE && ARRANQUE.driveHacienda) tOf.push(acceso('DRIVE DE HACIENDA', 'La carpeta compartida de la Secretaría de Hacienda',

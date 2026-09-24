@@ -41,7 +41,7 @@ var ARMAZON = [
   './js/ayuda.js',
   './js/revision.js',
   './js/docs-revision.js',
-  './js/prensa.js',
+  './js/comunicaciones.js',
   /* 6.3 */
   './js/oficina.js',
   './js/contratistas.js',

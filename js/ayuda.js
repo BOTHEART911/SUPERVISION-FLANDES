@@ -167,21 +167,21 @@
       };
     },
 
-    prensa: function () {
+    comunicaciones: function () {
       return {
         guia: 'Pide apoyo al equipo de Comunicaciones para tu secretaría. Desde Supervisión **no hay antelación mínima**: la entrega o publicación puede ser hoy mismo. ' +
               'Abajo ves tus solicitudes y en qué van (recibida, en proceso, realizada).',
         botones: [
           { texto: '¿En qué van mis solicitudes?', responde: function () {
-              var p = window.PRENSA_SUP && window.PRENSA_SUP._estado();
+              var p = window.COMUNICACIONES_SUP && window.COMUNICACIONES_SUP._estado();
               var s = (p && p.solicitudes) || [];
-              if (!s.length) return 'Todavía no has pedido nada a Prensa desde esta app.';
+              if (!s.length) return 'Todavía no has pedido nada a Comunicaciones desde esta app.';
               var m = {};
               s.forEach(function (x) { m[x.estado] = (m[x.estado] || 0) + 1; });
               return Object.keys(m).map(function (k) { return '· ' + k + ': **' + m[k] + '**'; }).join('\n');
             } },
           { texto: '¿Qué puedo pedir?', responde: function () {
-              var p = window.PRENSA_SUP && window.PRENSA_SUP._estado();
+              var p = window.COMUNICACIONES_SUP && window.COMUNICACIONES_SUP._estado();
               return ((p && p.requerimientos) || []).map(function (r) { return '· ' + r; }).join('\n') || 'La lista de requerimientos todavía está cargando.';
             } }
         ]
@@ -418,7 +418,7 @@
     };
   };
 
-  var TITULOS = { inicio: 'Tu inicio', revisar: 'Cuentas de mi supervisión', cuenta: 'Revisión de cuenta', prensa: 'Solicitud a Prensa',
+  var TITULOS = { inicio: 'Tu inicio', revisar: 'Cuentas de mi supervisión', cuenta: 'Revisión de cuenta', comunicaciones: 'Solicitud a Comunicaciones',
                   contratistas: 'Contratistas', contratista: 'Ficha del contratista', informe: 'Informe de cuentas',
                   firmados: 'Informes firmados', reporte: 'Reporte de Supervisión', requerimientos: 'Requerimientos',
                   comunicados: 'Comunicados', directorio: 'Directorio institucional', drive: 'Drive de Hacienda', perfil: 'Mi firma y mi foto' };
