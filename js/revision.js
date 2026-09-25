@@ -85,6 +85,8 @@
       return c;
     });
     HORA = new Date();
+    /* 10.5 · los atrasados de mi alcance llegan en el mismo viaje */
+    if (window.ATRASOS) window.ATRASOS.recibir(LISTA.atrasos || null);
     if (C.alCambiar) C.alCambiar(contar());
   }
 
@@ -2009,6 +2011,8 @@
     filtrar: function (f) { F = { est: f.est || '', rev: f.rev || '', sec: f.sec || '', sup: f.sup || '', busca: '' }; guardarFiltro(); },
     pendientes: function () { return LISTA ? LISTA.cuentas.length : null; },
     contar: contar,
+    /* 10.5 · cuentas atrasadas de mi alcance (vienen con 'cuentas') */
+    _atrasos: function () { return LISTA ? (LISTA.atrasos || null) : null; },
     _alcance: function () { return LISTA ? LISTA.alcance : null; },
     _cols: COLS,
     salir: salir,

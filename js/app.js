@@ -148,6 +148,18 @@
 
     if (window.COMUNICACIONES_SUP) window.COMUNICACIONES_SUP.configurar({ app: app, errorCaja: errorCaja });
 
+    /* 10.5 · cuentas atrasadas: los datos son los de 'cuentas' (ningún viaje nuevo) */
+    if (window.ATRASOS) window.ATRASOS.configurar({
+      modo: 'SUPERVISION', app: app, irA: irA, errorCaja: errorCaja, puede: puede,
+      traer: function (fresco) {
+        return window.REVISION.cargar(!!fresco).then(function () {
+          var a = window.REVISION._atrasos();
+          if (!a) throw new Error('No se pudieron calcular las cuentas atrasadas. Toca Reintentar.');
+          return a;
+        });
+      }
+    });
+
     /* 6.3 · las vistas nuevas: todas reciben lo mismo */
     var cOf = { app: app, puede: puede, irA: irA, errorCaja: errorCaja,
                 esDev: function () { return K.norm((YO && YO.rol) || '') === 'DEV'; },
@@ -241,6 +253,7 @@
     if (K.piezas.insights) K.piezas.insights.quitar();
     if (window.REVISION) window.REVISION.olvidar();
     if (window.COMUNICACIONES_SUP) window.COMUNICACIONES_SUP.olvidar();
+    if (window.ATRASOS) window.ATRASOS.olvidar();
     ['CONTRATISTAS', 'REQS', 'COMUS', 'FIRMADOS', 'REPORTE', 'INFORME', 'INSTITUCIONAL'].forEach(function (m) {
       if (window[m] && window[m].olvidar) window[m].olvidar();
     });
@@ -256,6 +269,8 @@
     revisar: function () { window.REVISION.lista(); },
     cuenta: function (sub) { window.REVISION.detalle(sub); },
     comunicaciones: function (sub) { window.COMUNICACIONES_SUP.vista(sub); },
+    /* 10.5 */
+    atrasos: function () { window.ATRASOS.vista(); },
     /* 6.3 */
     contratistas: function (sub) { window.CONTRATISTAS.lista(sub); },
     contratista: function (sub) { window.CONTRATISTAS.detalle(sub); },
@@ -274,6 +289,7 @@
     revisar: 'CUENTAS',
     cuenta: 'CUENTA',
     comunicaciones: 'SOLICITUD A COMUNICACIONES',
+    atrasos: 'CUENTAS ATRASADAS',
     contratistas: 'CONTRATISTAS',
     contratista: 'CONTRATISTA',
     informe: 'INFORME DE CUENTAS',
@@ -288,7 +304,7 @@
 
   /* El permiso de cada vista (llave PERMISOS de CONFIG). El CORE lo vuelve
      a exigir en cada llamada: esto solo evita pintar lo que no se puede. */
-  var PERMISO = { revisar: 'revisarCuentas', cuenta: 'revisarCuentas', comunicaciones: 'solicitudComunicaciones',
+  var PERMISO = { revisar: 'revisarCuentas', cuenta: 'revisarCuentas', atrasos: 'revisarCuentas', comunicaciones: 'solicitudComunicaciones',
                   contratistas: 'contratistas', contratista: 'contratistas', informe: 'descargarInforme',
                   firmados: 'supervisionFirmados', reporte: 'reportes', requerimientos: 'requerimientos',
                   comunicados: 'comunicados', directorio: 'directorio', drive: 'driveHacienda', perfil: 'configuracion' };
@@ -356,7 +372,7 @@
       return s;
     }
 
-    var accRev = null, accPlan = null;
+    var accRev = null, accPlan = null, dAtrasos = null;
     if (puede('revisarCuentas')) {
       if (al.tipo === 'NADA') {
         caja.appendChild(K.nodo('<section class="kit-tarjeta rv-aviso rv-aviso--malo">' + K.icono('candado', 18) +
@@ -376,6 +392,11 @@
         if (puede('reportes')) tCuentas.push(acceso('REPORTE', 'Todas las cuentas de tu supervisión, de la radicación al pago, en PDF o Excel',
           'img/pdf.webp', function () { irA('reporte'); }));
         bloque('CUENTAS', tCuentas);
+        /* 10.5 · los contratistas con la cuenta atrasada, con el botón de compartir */
+        var sAt = K.nodo('<section class="bloque" aria-label="Cuentas atrasadas"><h3 class="bloque__t">CUENTAS ATRASADAS</h3></section>');
+        dAtrasos = K.nodo('<div class="at-ini-zona"></div>');
+        sAt.appendChild(dAtrasos);
+        caja.appendChild(sAt);
       }
     }
 
@@ -421,7 +442,17 @@
     K.piezas.creditos.montar(caja);
 
     if (accRev && window.REVISION) {
-      K.piezas.esqueletos.mientras(destino, window.REVISION.cargar(false), { forma: 'ficha', cuantos: 1, espera: 'Cargando tus cuentas' })
+      var carga = window.REVISION.cargar(false);
+      /* 10.5 · el mismo viaje trae los atrasados */
+      if (dAtrasos && window.ATRASOS) {
+        K.piezas.esqueletos.mientras(dAtrasos, carga, { forma: 'ficha', cuantos: 1, espera: 'Revisando plazos' })
+          .then(function () {
+            var a = window.REVISION._atrasos();
+            if (a) window.ATRASOS.inicio(dAtrasos, a);
+            else if (dAtrasos.parentNode) dAtrasos.parentNode.hidden = true;
+          }, function () { if (dAtrasos.parentNode) dAtrasos.parentNode.hidden = true; });
+      }
+      K.piezas.esqueletos.mientras(destino, carga, { forma: 'ficha', cuantos: 1, espera: 'Cargando tus cuentas' })
         .then(function () {
           var n = window.REVISION.contar();
           burbuja(accRev, n['REPORTADA'], 'por revisar', 'Estás al día: no hay cuentas esperando revisión');
@@ -461,7 +492,12 @@
       K.icono('recargar', 16) + '<span>Refrescar</span></button>');
     ref.addEventListener('click', function () {
       ref.disabled = true; ref.classList.add('kit-ocupado');
-      window.REVISION.cargar(true).then(function () { pintarResumen(destino, window.REVISION.contar()); K.aviso('Cifras al día.', 'ok', 2000); },
+      window.REVISION.cargar(true).then(function () {
+        pintarResumen(destino, window.REVISION.contar());
+        var zAt = document.querySelector('.at-ini-zona');
+        if (zAt && window.ATRASOS && window.REVISION._atrasos()) window.ATRASOS.inicio(zAt, window.REVISION._atrasos());
+        K.aviso('Cifras al día.', 'ok', 2000);
+      },
         function (e) { K.aviso((e && e.message) || 'No se pudo refrescar.', 'malo', 5000); ref.disabled = false; ref.classList.remove('kit-ocupado'); });
     });
     caja.appendChild(ref);

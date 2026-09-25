@@ -55,6 +55,9 @@
       t += soyRevisor()
         ? 'Como **revisor** revisas, dejas notas y marcas **Visto bueno** o **Con inconsistencia**; la decisión la toma el supervisor (o tú, si el administrador te dio ese permiso).'
         : 'Toca una cifra del resumen y la lista se abre ya filtrada.';
+      /* 10.5 · los atrasados de mi alcance */
+      var at = window.ATRASOS ? window.ATRASOS._datos() : null;
+      if (at && at.lista) t += at.lista.length ? ' Hay **' + at.lista.length + (at.lista.length === 1 ? ' contratista con la cuenta atrasada**' : ' contratistas con la cuenta atrasada**') + ': compártelos con el botón **Compartir la lista**.' : ' Nadie tiene la cuenta atrasada. ✓';
       return {
         guia: t,
         botones: [
@@ -66,6 +69,11 @@
                 var d = diasDe(x.radicada);
                 return '· **' + nombre(x.nombre) + '** — cuenta ' + x.informe + ' de ' + x.total + (d !== null ? ', radicada hace ' + d + (d === 1 ? ' día' : ' días') : '');
               }, 6);
+            } },
+          { texto: '¿Quién tiene la cuenta atrasada?', responde: function () {
+              var x = window.ATRASOS && window.ATRASOS._datos() ? window.ATRASOS._datos().lista || [] : [];
+              if (!x.length) return 'Nadie tiene la cuenta atrasada. ✓';
+              return listaCorta(x, function (a) { return '· **' + nombre(a.nombre) + '** — cuenta ' + a.informe + ', venció el ' + a.limite + ' (' + a.dias + (a.dias === 1 ? ' día hábil' : ' días hábiles') + ')'; }, 6);
             } },
           { texto: '¿Qué tiene visto bueno?', responde: function () {
               var c = porEstado('REPORTADA').filter(function (x) { return x.concepto; });
@@ -418,7 +426,58 @@
     };
   };
 
-  var TITULOS = { inicio: 'Tu inicio', revisar: 'Cuentas de mi supervisión', cuenta: 'Revisión de cuenta', comunicaciones: 'Solicitud a Comunicaciones',
+  /* ══════════════ 10.5 · cuentas atrasadas ══════════════ */
+  function AT() { return window.ATRASOS ? window.ATRASOS._datos() : null; }
+  function nomAt(s) { return K.piezas.personas ? K.piezas.personas.nombrePropio(s) : String(s || ''); }
+
+  GUIAS.atrasos = function () {
+    var d = AT(), l = d ? (d.lista || []) : [];
+    var t;
+    if (!d) t = 'Las cuentas atrasadas están cargando.';
+    else if (!l.length) t = 'Nadie tiene la cuenta atrasada: todos presentaron dentro del plazo de **' + (d.dias || 5) + ' días hábiles**. ✓';
+    else {
+      var v = 0; l.forEach(function (x) { v += x.pendientes || 1; });
+      t = '**' + l.length + '** ' + (l.length === 1 ? 'contratista tiene' : 'contratistas tienen') + ' la cuenta atrasada (**' + v + '** ' + (v === 1 ? 'cuenta vencida' : 'cuentas vencidas') + ' sin presentar). ' +
+          'La regla: presentar al supervisor dentro de **' + (d.dias || 5) + ' días hábiles** después del fin del periodo, sin fines de semana ni festivos. ' +
+          '**Compartir** abre el compartir de tu teléfono o computador con la lista escrita: tú escoges el chat, el grupo o el correo.';
+    }
+    if (d && d.cfg && d.cfg.push) t += ' El aviso push al contratista está **' + (d.cfg.push.activo ? 'ENCENDIDO' : 'APAGADO') + '**' + (d.porAvisar ? ' y ' + d.porAvisar + ' atrasados aún no lo tienen' : '') + '.';
+    if (d && d.sinDatos && d.sinDatos.length) t += ' Ojo: **' + d.sinDatos.length + '** contratos activos no tienen fechas o total de informes, y no se pueden evaluar.';
+    return {
+      guia: t,
+      botones: [
+        { texto: '¿Quién lleva más días?', responde: function () {
+            var x = AT() && AT().lista || [];
+            if (!x.length) return '¡Nadie está atrasado!';
+            return listaCorta(x, function (a) { return '· **' + nomAt(a.nombre) + '** — cuenta ' + a.informe + ' de ' + a.total + ', venció el ' + a.limite + ' (' + a.dias + (a.dias === 1 ? ' día hábil' : ' días hábiles') + ')'; }, 6);
+          } },
+        { texto: '¿Quién debe varias cuentas?', responde: function () {
+            var x = (AT() && AT().lista || []).filter(function (a) { return a.pendientes > 1; });
+            if (!x.length) return 'Nadie debe más de una cuenta vencida.';
+            return listaCorta(x, function (a) { return '· **' + nomAt(a.nombre) + '** — ' + a.pendientes + ' cuentas vencidas, desde la ' + a.informe; }, 8);
+          } },
+        { texto: '¿Quién la tiene lista y no la reporta?', responde: function () {
+            var x = (AT() && AT().lista || []).filter(function (a) { return a.estado === 'INGRESADA'; });
+            if (!x.length) return 'Nadie tiene la cuenta atrasada ya ingresada sin reportar.';
+            return 'Ya la ingresaron pero les falta **reportarla** en su app:\n' + listaCorta(x, function (a) { return '· **' + nomAt(a.nombre) + '** — cuenta ' + a.informe; }, 8);
+          } },
+        { texto: '¿Por supervisor?', responde: function () {
+            var x = AT() && AT().lista || [], n = {};
+            x.forEach(function (a) { n[a.sup] = (n[a.sup] || 0) + 1; });
+            var k = Object.keys(n).sort(function (a, b) { return n[b] - n[a]; });
+            return k.length ? k.map(function (s) { return '· **' + nomAt(s) + '**: ' + n[s]; }).join('\n') : 'Nadie está atrasado.';
+          } },
+        { texto: '¿Cómo se cuenta el plazo?', responde: function () {
+            var d = AT() || {};
+            return 'El periodo de cada cuenta va mes a mes desde la fecha de inicio del contrato (o sigue desde el fin de la cuenta anterior). ' +
+              'Desde el día siguiente al fin del periodo se cuentan **' + (d.dias || 5) + ' días hábiles** (sin sábados, domingos ni festivos). ' +
+              'Si al terminar ese día la cuenta no se ha **reportado** al supervisor, queda atrasada. Una cuenta en borrador o ingresada sin reportar no cuenta como presentada.';
+          } }
+      ]
+    };
+  };
+
+  var TITULOS = { inicio: 'Tu inicio', atrasos: 'Cuentas atrasadas', revisar: 'Cuentas de mi supervisión', cuenta: 'Revisión de cuenta', comunicaciones: 'Solicitud a Comunicaciones',
                   contratistas: 'Contratistas', contratista: 'Ficha del contratista', informe: 'Informe de cuentas',
                   firmados: 'Informes firmados', reporte: 'Reporte de Supervisión', requerimientos: 'Requerimientos',
                   comunicados: 'Comunicados', directorio: 'Directorio institucional', drive: 'Drive de Hacienda', perfil: 'Mi firma y mi foto' };
