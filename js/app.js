@@ -79,6 +79,7 @@
       YO = d.yo || YO;
       if (d.personas && K.piezas.personas) K.piezas.personas.cargar(d.personas);
       if (d.push && K.piezas.avisos && K.piezas.avisos.configurar) K.piezas.avisos.configurar(d.push);
+      if (d.config && K.piezas.guia) K.piezas.guia.configurar(d.config);   /* guías rápidas: el id del PDF de cada app llega en la configuración pública */
       if (d.config && K.piezas.creditos && K.piezas.creditos.configurar) K.piezas.creditos.configurar(d.config);
       quitar();
       return d;
@@ -225,6 +226,8 @@
         { texto: 'Instalar la app', al: function () { K.piezas.instalar.abrir(); } },
         /* 5.1.1 · soporte en TODAS las apps: se guarda en la hoja SOPORTE
            (la responde ADMIN) y avisa al grupo de desarrollo por WhatsApp */
+        /* guías rápidas: el PDF de esta app (carpeta GUÍAS RÁPIDAS de Drive) */
+        { texto: 'Descargar guía rápida', al: function () { if (K.piezas.guia) K.piezas.guia.descargar('SUPERVISION'); } },
         { texto: 'Soporte', al: function () { if (K.piezas.soporte) K.piezas.soporte.abrir({ vista: vistaActual() }); } },
         { texto: 'Cerrar sesión', al: salir, peligro: true }
       ]

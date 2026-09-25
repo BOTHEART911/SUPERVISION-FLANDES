@@ -77,6 +77,7 @@ var ARMAZON = [
   './kit/instalar.js', './kit/instalar.css',
   './kit/antidoble.js', './kit/antidoble.css',
   './kit/creditos.js', './kit/creditos.css',
+  './kit/guia.js',
   './kit/avisos.js',
   './kit/bienvenida.js', './kit/bienvenida.css',
   './kit/cielo.js', './kit/cielo.css',
