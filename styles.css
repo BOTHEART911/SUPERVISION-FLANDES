@@ -2615,3 +2615,6 @@
   .at-cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .at-fila { flex-direction: column; align-items: flex-start; }
 }
+
+/* 25/09 · el resumen del inicio va debajo de su título (la hoja base lo sube sobre la franja del contratista) */
+.bloque > .resumen { margin-top: 0; }

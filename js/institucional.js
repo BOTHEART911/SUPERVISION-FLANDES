@@ -200,6 +200,12 @@
 
     /* la firma */
     var g = K.nodo('<section class="kit-tarjeta grupo pf-firma"><h3 class="grupo__t">Mi firma</h3></section>');
+    /* 25/09 · el REVISOR no firma: no se le dice que sus informes saldrían sin firma */
+    if (!f.puede) {
+      g.appendChild(K.nodo('<p class="formulario__nota">' + K.icono('info', 13) + ' Como revisor, lo que decides sale con la firma del supervisor del contrato. Aquí solo cambias tu foto.</p>'));
+      zona.appendChild(g);
+      return;
+    }
     var marco = K.nodo('<div class="pf-marco"></div>');
     if (f.mini) {
       var img = K.nodo('<img class="pf-img" alt="Tu firma actual">');
@@ -210,11 +216,6 @@
       marco.appendChild(K.nodo('<p class="formulario__nota formulario__nota--fuerte">No tienes firma cargada: tus informes saldrían sin firma.</p>'));
     }
     g.appendChild(marco);
-    if (!f.puede) {
-      g.appendChild(K.nodo('<p class="formulario__nota">' + K.icono('info', 13) + ' Como revisor, lo que decides sale con la firma del supervisor del contrato. Aquí solo cambias tu foto.</p>'));
-      zona.appendChild(g);
-      return;
-    }
     g.appendChild(K.nodo('<p class="formulario__nota">Firma con tinta oscura en una hoja blanca y tómale una foto de cerca. La app le quita el fondo y la recorta.</p>'));
     var inp = K.nodo('<input type="file" accept="image/png,image/jpeg,image/webp" hidden>');
     var elegir = K.nodo('<button type="button" class="kit-btn kit-btn--marca">' + K.icono('camara', 16) + ' ' + (f.mini ? 'Cambiar mi firma' : 'Subir mi firma') + '</button>');
