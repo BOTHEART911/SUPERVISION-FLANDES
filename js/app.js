@@ -70,17 +70,21 @@
      a Apps Script cuesta ~2 s de transporte y entrar eran dos seguidos. */
   function arranque(conEsqueleto, pre) {
     var yaVino = pre && pre.arranque ? pre.arranque : null;
-    var quitar = (!yaVino && conEsqueleto && K.piezas.esqueletos && app)
+    /* 25/09 · al abrir con la sesión ya iniciada: se pinta YA con el último
+       arranque guardado y el viaje al CORE se hace por detrás */
+    var recordado = (!yaVino && conEsqueleto && K.recuerdo) ? K.recuerdo.leer() : null;
+    var quitar = (!yaVino && !recordado && conEsqueleto && K.piezas.esqueletos && app)
       ? K.piezas.esqueletos.poner(app, { forma: 'ficha', cuantos: 1, sitio: 'reemplaza', espera: 'Cargando tu supervisión' })
       : function () {};
 
-    return (yaVino ? Promise.resolve(yaVino) : leer('inicio')).then(function (d) {
+    return (yaVino ? Promise.resolve(yaVino) : recordado ? Promise.resolve(recordado) : leer('inicio')).then(function (d) {
       ARRANQUE = d;
       YO = d.yo || YO;
       if (d.personas && K.piezas.personas) K.piezas.personas.cargar(d.personas);
       if (d.push && K.piezas.avisos && K.piezas.avisos.configurar) K.piezas.avisos.configurar(d.push);
       if (d.config && K.piezas.guia) K.piezas.guia.configurar(d.config);   /* guías rápidas: el id del PDF de cada app llega en la configuración pública */
       if (d.config && K.piezas.creditos && K.piezas.creditos.configurar) K.piezas.creditos.configurar(d.config);
+      if (K.recuerdo) { if (recordado) setTimeout(refrescarArranque, 30); else K.recuerdo.guardar(d); }
       quitar();
       return d;
     }, function (e) {
@@ -88,6 +92,22 @@
       throw e;
     });
   }
+  /* 25/09 · el 'inicio' de verdad, por detrás: se aplica, se guarda y, si la
+     persona sigue en el inicio, se vuelve a pintar con lo nuevo. */
+  function refrescarArranque() {
+    leer('inicio').then(function (d) {
+      return arranque(false, { arranque: d, refresco: true });
+    }).then(function () {
+      var v = String(location.hash || '').replace(/^#\/?/, '').split('/')[0] || 'inicio';
+      if (v === 'inicio') enrutar();
+    }, function (e) {
+      var m = String((e && e.message) || '');
+      if (/SESION|SIN_SESION/.test((e && e.codigo) || '') || (/sesi[oó]n/i.test(m) && /(venci|no valida|no válida|inicia)/i.test(m))) {
+        try { K.piezas.sesion.salir(true); } catch (x) {}
+      }
+    });
+  }
+
 
   K.listo(function () {
     registrarSW();
