@@ -22,9 +22,23 @@
   var DATOS = null;
   var CACHE = {};
 
-  function cargar(id, fresco) {
+  /* F11 · el informe cuesta ~2 s de servidor (las actividades de todas las
+     cuentas). Se pinta YA con lo último que se vio de ese contrato
+     (K.recordado) y el viaje se hace por detrás: si trae algo distinto, la
+     vista se vuelve a pintar sola. */
+  function cargar(id, fresco, alNuevo) {
     if (CACHE[id] && !fresco) return Promise.resolve(CACHE[id]);
-    return O.leer('informeContratista', { idContrato: id }).then(function (d) { CACHE[id] = d; return d; });
+    var red = O.leer('informeContratista', { idContrato: id }).then(function (d) {
+      CACHE[id] = d;
+      if (K.recordado) K.recordado.guardar('informe.' + id, d);
+      return d;
+    });
+    var visto = (!fresco && K.recordado) ? K.recordado.leer('informe.' + id) : null;
+    if (!visto) return red;
+    red.then(function (d) {
+      if (alNuevo && JSON.stringify(d.cuentas) + JSON.stringify(d.contrato) !== JSON.stringify(visto.cuentas) + JSON.stringify(visto.contrato)) alNuevo(d);
+    }, function () {});
+    return Promise.resolve(visto);
   }
 
   function vista(sub) {
@@ -40,7 +54,11 @@
       K.piezas.creditos.montar(caja);
       return;
     }
-    K.piezas.esqueletos.mientras(caja, cargar(id), { forma: 'texto', cuantos: 8, espera: 'Trayendo las cuentas del contrato' })
+    var ruta = location.hash;
+    K.piezas.esqueletos.mientras(caja, cargar(id, false, function (d) {
+      /* llegó lo fresco y es distinto: se repinta si la persona sigue aquí */
+      if (location.hash === ruta && caja.isConnected) { var y = window.scrollY; DATOS = d; pintar(caja, d); window.scrollTo(0, y); }
+    }), { forma: 'texto', cuantos: 8, espera: 'Trayendo las cuentas del contrato' })
       .then(function (d) { DATOS = d; pintar(caja, d); })
       ['catch'](function (e) { caja.appendChild(C.errorCaja(e, function () { C.app.innerHTML = ''; vista(sub); })); });
   }
