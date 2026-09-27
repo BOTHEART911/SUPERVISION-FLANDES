@@ -1,21 +1,23 @@
-# SUPERVISION-FLANDES
+<div align="center">
 
-App de los supervisores de contrato de la Alcaldía de Flandes. Front estático (GitHub Pages) sobre FLANDES_CORE (app `SUPERVISION`). Mismo kit, estilos, cohete, esqueletos, Insights, foto de perfil, modo oscuro y firma que Contratista y Contratación.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/firma/banner-oscuro.svg">
+  <source media="(prefers-color-scheme: light)" srcset=".github/firma/banner-claro.svg">
+  <img src=".github/firma/banner-claro.svg" alt="Oscar Polania · Experto en soluciones digitales" width="100%">
+</picture>
 
-## Qué hay aquí (entrega 6.1)
-- Inicio: saludo con el alcance, accesos REVISAR CUENTAS, PLAN DE PAGOS y SOLICITUD A PRENSA, resumen de mis cuentas.
-- Lista de cuentas con pastillas (estado, revisión, secretaría, supervisor). Solo las de su supervisión; el REVISOR ve las del supervisor o la secretaría que le asigne ADMIN.
-- Revisión con el visor rápido y el carrusel de evidencias (5.4) y bitácora de observaciones.
-- Decisión a nombre del SUPERVISOR: Aprobar, Devolver o Incompleta. El REVISOR sin permiso deja VISTO BUENO o CON INCONSISTENCIA ("Visto Bueno: nombre · fecha y hora" en la tarjeta).
-- Plan de pagos: firmar el informe de supervisión (plantilla V3 de Drive, con RP de cesión) y aceptar el plan. El acta de cumplimiento del último informe llega en la 6.2.
-- Solicitud a Prensa sin antelación mínima (desde hoy).
-- Descarga de la lista: Excel plano y PDF como informe por bloques.
+<br><br>
 
-## Entrega 6.3
-- Aceptar el plan de pagos avisa, a nombre del supervisor, al grupo de Contabilidad (pedido de la orden de pago) y al contratista (push + WhatsApp + su buzón) con el enlace del informe de supervisión y, en la última cuenta, el del acta final de cumplimiento.
-- CONTRATISTAS de la supervisión con su ficha, INFORME de cuentas de un contrato (PDF por bloques y Excel con las columnas compartidas con Contabilidad y Tesorería: `kit/informe-cuentas.js`), INFORMES FIRMADOS (hoja FIRMAS, con el PDF en el visor), REPORTE DE SUPERVISIÓN (todas las cuentas por etapa), REQUERIMIENTOS, COMUNICADOS, DIRECTORIO, DRIVE DE HACIENDA (llave `DRIVE_HACIENDA` de CONFIG) y MI FIRMA Y MI FOTO.
-- Todas las vistas con carga única, Refrescar, esqueleto centrado, Insights y modo oscuro.
+<a href="https://wa.me/573103230712?text=Hola%20Oscar%2C%20vi%20tu%20trabajo%20en%20GitHub%20y%20me%20gustar%C3%ADa%20hablar%20contigo%20sobre%20una%20soluci%C3%B3n%20digital."><img src=".github/firma/whatsapp.svg" alt="Escríbeme por WhatsApp" height="56"></a>
+&nbsp;&nbsp;
+<a href="mailto:opolania11@gmail.com?subject=Contacto%20desde%20GitHub"><img src=".github/firma/correo.svg" alt="Escríbeme un correo" height="56"></a>
 
-## Entrega 6.4
-- PEDIR CORRECCIÓN DEL PLAN (el "Retroalimentación plan de pagos" de la app vieja): el supervisor escribe qué corregir; al contratista le llega a nombre del supervisor (push + WhatsApp + buzón). La cuenta sigue en PLAN DE PAGOS y el contratista avisa con REPORTAR CORRECCIÓN DEL PLAN. La última corrección pedida se ve en la cuenta.
-- IR A SECOP II: en la barra del plan de pagos, en el menú del perfil y en el inicio (URL de SITIOS_WEB de CONFIG).
+<br><br>
+
+<a href="https://youtu.be/Bo3RiaxJNtw" title="Ver el video en YouTube"><img src=".github/firma/video.svg" alt="Ver el video en YouTube" width="720"></a>
+
+<br><br>
+
+<sub>© Oscar Polania · Experto en soluciones digitales</sub>
+
+</div>
