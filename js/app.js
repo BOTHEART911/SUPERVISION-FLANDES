@@ -203,6 +203,12 @@
       if (cara && K.piezas.perfil) cara.parentNode.replaceChild(caraPerfil(), cara);
     });
 
+    /* 28/09 · sin foto de perfil: se le pide UNA vez con el modal de la foto
+       ("Ahora no" la pospone 7 días). Espera a que no haya otro modal abierto. */
+    if (K.piezas.perfil && K.piezas.perfil.invitar) {
+      setTimeout(function () { K.piezas.perfil.invitar({ nombre: YO.nombre || '', foto: YO.imagen || '' }); }, 2500);
+    }
+
     window.addEventListener('hashchange', enrutar);
     enrutar();
   }

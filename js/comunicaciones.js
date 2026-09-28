@@ -319,7 +319,7 @@
           '  </div>' +
           '</details>');
         var hueco = d.querySelector('.tr-sol__cara');
-        if (hueco && K.piezas.personas) hueco.appendChild(K.piezas.personas.avatar(x.asignado, { tam: 22, sinZoom: true }));
+        if (hueco && K.piezas.personas) hueco.appendChild(K.piezas.personas.avatar(x.asignado, { tam: 22 }));   /* 28/09: con foto, se abre en grande */
         else if (hueco) hueco.remove();
         lista.appendChild(d);
       });
