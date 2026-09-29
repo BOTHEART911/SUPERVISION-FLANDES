@@ -45,6 +45,11 @@
 
   var S = null;   /* la cuenta abierta */
   var GEN = 0;
+  /* 29/09 · la cuenta que se acaba de cerrar: si la persona vuelve a entrar a
+     la MISMA, los documentos ya bajados se reusan (el visor abre al instante)
+     en vez de bajarlos todos otra vez. Solo se guarda una. */
+  var ANTERIOR = null;
+  function mismaCuenta(a, b) { return !!(a && b && a.fila === b.fila && String(a.id) === String(b.id) && a.informe === b.informe); }
 
   function diferido() {
     var d = { enviado: false, listo: false };
@@ -62,7 +67,13 @@
 
   function recibir(q, r) {
     GEN++;
-    S = { gen: GEN, q: q, boletos: {}, cache: {}, cola: [], enVuelo: 0, precargado: 0, medidas: [] };
+    if (S) olvidar();
+    S = { gen: GEN, q: q, boletos: {}, cache: {}, cola: [], enVuelo: 0, precargado: 0, medidas: [],
+          ctrl: (typeof AbortController === 'function') ? new AbortController() : null };
+    if (ANTERIOR && mismaCuenta(ANTERIOR.q, q)) {
+      Object.keys(ANTERIOR.cache).forEach(function (id) { S.cache[id] = ANTERIOR.cache[id]; });
+    }
+    ANTERIOR = null;
     r = r || {};
     var cols = r.columnas || {};
     Object.keys(cols).forEach(function (id) {
@@ -96,7 +107,7 @@
     st.enVuelo++;
     ids.forEach(function (id) { entrada(id).enviado = true; });
     var t0 = Date.now();
-    K.pedir('revisionPaquete', { docs: ids.map(function (id) { return { id: id, t: st.boletos[id].t }; }) }, { ms: 90000 })
+    K.pedir('revisionPaquete', { docs: ids.map(function (id) { return { id: id, t: st.boletos[id].t }; }) }, { ms: 90000, senal: st.ctrl ? st.ctrl.signal : null })
       .then(function (r) {
         if (st !== S) return;
         var vistos = {}, bytes = 0;
@@ -187,7 +198,19 @@
 
   function listo(id) { return !!(S && S.cache[id] && S.cache[id].listo); }
 
-  function olvidar() { GEN++; S = null; }
+  /** 29/09 · soltar la cuenta = CANCELAR lo que se estaba bajando por detras
+   *  (antes seguia: al volver a entrar, los viajes nuevos hacian fila detras de
+   *  paquetes de 4 MB de la visita anterior) y guardar lo ya bajado. */
+  function olvidar() {
+    GEN++;
+    if (S) {
+      var listos = {};
+      Object.keys(S.cache).forEach(function (id) { if (S.cache[id] && S.cache[id].listo) listos[id] = S.cache[id]; });
+      ANTERIOR = { q: S.q, cache: listos };
+      try { if (S.ctrl) S.ctrl.abort(); } catch (e) {}
+    }
+    S = null;
+  }
 
   window.DOCS_REV = {
     recibir: recibir, precargar: precargar, adelantar: adelantar, pedir: pedir, listo: listo, hay: hay,
