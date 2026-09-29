@@ -2675,3 +2675,7 @@
 .rv-dec__int summary b { color: var(--k-malo); }
 .rv-dec__int .rv-notas { margin-top: 8px; max-height: 220px; overflow-y: auto; }
 .rv-obl__pie { flex-wrap: wrap; }
+
+/* 29/09 · botón DRIVE en la cabecera del detalle de cuenta: a la derecha de
+   nombre / CC / contrato / estado; en el teléfono baja solo debajo. */
+.rv-cab__drive { flex: 0 0 auto; align-self: flex-start; }

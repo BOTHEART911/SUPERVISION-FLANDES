@@ -624,6 +624,16 @@
       '  <p class="rv-cab__fechas">Radicada el <b>' + K.esc(cu.radicada || '—') + '</b>' +
       (cu.revisadaSup && !cu.porRevisar ? ' · revisada el <b>' + K.esc(cu.revisadaSup) + '</b>' : '') + '</p>' +
       '</div>'));
+    /* 29/09 · DRIVE: la carpeta GENERAL del contratista (no la de la cuenta), por si el
+       supervisor o el revisor necesitan algo que no esté en las pestañas. Llega en
+       cuentaRevision (cu.carpetaGeneral): no hay viaje extra. */
+    var dr = K.nodo('<button type="button" class="ins-accion rv-cab__drive" aria-label="Abrir la carpeta de Drive del contratista" title="Carpeta general del contratista en Drive">' +
+      K.icono('nube', 16) + ' Drive</button>');
+    dr.addEventListener('click', function () {
+      if (!cu.carpetaGeneral) { K.aviso('Este contratista no tiene carpeta de Drive asociada.', 'aviso', 5000); return; }
+      window.open('https://drive.google.com/drive/folders/' + encodeURIComponent(cu.carpetaGeneral), '_blank', 'noopener');
+    });
+    cab.appendChild(dr);
     if (cu.supervisor && K.piezas.personas) {
       var s = K.nodo('<div class="rv-cab__sup"></div>');
       s.appendChild(K.piezas.personas.chip(cu.supervisor, 'Supervisor(a) · los avisos van a su nombre', { tam: 34 }));
