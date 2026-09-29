@@ -133,10 +133,16 @@
     cuenta: function () {
       return {
         guia: 'Revisa por pestañas: **Contrato**, **Pago**, **Planilla** y **Actividades**. Cada documento se abre en el visor y cada evidencia en el carrusel con zoom. ' +
-              'Marca con ✓ lo revisado y deja **notas internas**. **Guardar revisión** no cambia el estado. ' +
+              'Marca con ✓ lo revisado. En cada obligación y documento tienes dos cajas: **Nota interna** (solo el equipo) y **Para el contratista**. **Guardar revisión** no cambia el estado. ' +
+              'Al **devolver** o marcar **incompleta**, el motivo sale ya escrito con las observaciones para el contratista, en orden; se edita y se confirma. Las notas internas nunca le llegan. ' +
               (soyRevisor() ? 'Cuando termines, deja tu **Visto bueno** o marca **Con inconsistencia**: queda en la tarjeta con tu nombre, fecha y hora. ' : '') +
               'Aprobar, devolver o marcar incompleta sale siempre **a nombre del supervisor** del contrato.',
         botones: [
+          { texto: '¿Qué le llega al contratista si devuelvo?', responde: function () {
+              var r = RV(); if (!r || !r._detalle()) return 'La cuenta todavía está cargando.';
+              var t = r._observaciones ? r._observaciones() : '';
+              return t ? 'Esto sale ya escrito en el motivo (lo puedes editar al decidir):\n\n' + t : 'Todavía no hay observaciones para el contratista. Déjalas con **Para el contratista** en cada obligación o documento.';
+            } },
           { texto: '¿Qué me falta por mirar?', responde: function () {
               var r = RV(); if (!r || !r._detalle()) return 'La cuenta todavía está cargando.';
               var B = r._bitacora(), docs = r._docs(), d = r._detalle();

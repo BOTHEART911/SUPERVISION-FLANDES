@@ -509,7 +509,10 @@
       var mias = {};
       B.notas.forEach(function (n, i) { mias[n.id] = i; });
       (g.notas || []).forEach(function (n) {
-        if (mias[n.id] !== undefined) B.notas[mias[n.id]].texto = n.texto; else B.notas.push(n);
+        if (mias[n.id] !== undefined) {
+          var x = B.notas[mias[n.id]];
+          x.texto = n.texto; if (n.para) x.para = n.para; x.editada_local = true;
+        } else B.notas.push(n);
       });
       (g.quitadas || []).forEach(function (id) { quitarNotaLocal(id, true); });
       Object.keys(g.cambiosVistos || {}).forEach(function (k) { marcarVisto(k, g.cambiosVistos[k], true); });
@@ -530,10 +533,11 @@
     pintarBarra();
   }
 
-  function nuevaNota(ambito, ref, refTitulo, texto) {
+  function nuevaNota(ambito, ref, refTitulo, texto, para) {
     B.notas.push({
       id: 'n' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36),
       ambito: ambito, ref: String(ref || ''), refTitulo: refTitulo || '', texto: texto,
+      para: para === 'contratista' ? 'contratista' : 'interna',
       autor: D.yo.nombre, fecha: 'sin guardar', nueva: true
     });
     guardarBorrador();
@@ -564,7 +568,7 @@
     return {
       fila: D.cuenta.fila, id: D.cuenta.idContrato, informe: D.cuenta.informe,
       notas: B.notas.filter(esMia).map(function (n) {
-        return { id: n.id, ambito: n.ambito, ref: n.ref, refTitulo: n.refTitulo, texto: n.texto };
+        return { id: n.id, ambito: n.ambito, ref: n.ref, refTitulo: n.refTitulo, texto: n.texto, para: n.para === 'contratista' ? 'contratista' : 'interna' };
       }),
       quitadas: B.quitadas,
       vistos: B.cambiosVistos,
@@ -717,7 +721,7 @@
     var n = B.notas.length;
     var caja = K.nodo('<section class="kit-tarjeta rv-prog"></section>');
     caja.appendChild(K.nodo('<p class="rv-prog__t"><span>Llevas <b>' + v + '</b> de <b>' + p.length + '</b> puntos revisados</span>' +
-      '<span>' + n + (n === 1 ? ' nota' : ' notas') + '</span></p>'));
+      '<span>' + n + (n === 1 ? ' nota' : ' notas') + (observaciones().length ? ' · ' + observaciones().length + ' para el contratista' : '') + '</span></p>'));
     caja.appendChild(K.nodo('<div class="rv-prog__barra" role="img" aria-label="Revisado ' + pct + ' por ciento"><i style="width:' + pct + '%"></i></div>'));
     return caja;
   }
@@ -886,12 +890,28 @@
   }
 
   function botonNota(ambito, ref, refTitulo) {
-    var n = notasDe(ambito, ref).length;
-    var b = K.nodo('<button type="button" class="rv-nota-b' + (n ? ' rv-nota-b--con' : '') + '" title="Nota interna">' + K.icono('lapiz', 15) +
+    var ns = notasDe(ambito, ref), n = ns.length, o = ns.filter(esObs).length;
+    var b = K.nodo('<button type="button" class="rv-nota-b' + (n ? ' rv-nota-b--con' : '') + (o ? ' rv-nota-b--obs' : '') +
+      '" title="Nota interna u observación para el contratista" aria-label="Notas y observaciones de ' + K.esc(refTitulo) + '">' + K.icono('lapiz', 15) +
       (n ? '<i>' + n + '</i>' : '') + '</button>');
     if (!D.cuenta.porRevisar) b.disabled = true;
     b.addEventListener('click', function () { editorNotas(ambito, ref, refTitulo); });
     return b;
+  }
+
+  /** 29/09 · las dos cajas con nombre: NOTA INTERNA y PARA EL CONTRATISTA. */
+  function botonesNota(ambito, ref, refTitulo) {
+    var ns = notasDe(ambito, ref);
+    var w = K.nodo('<span class="rv-nota-bs"></span>');
+    [['interna', 'candado', 'Nota interna'], ['contratista', 'enviar', 'Para el contratista']].forEach(function (c) {
+      var k = ns.filter(function (n) { return esObs(n) === (c[0] === 'contratista'); }).length;
+      var b = K.nodo('<button type="button" class="rv-nota-l rv-nota-l--' + c[0] + (k ? ' rv-nota-l--con' : '') + '">' +
+        K.icono(c[1], 14) + '<span>' + c[2] + '</span>' + (k ? '<i>' + k + '</i>' : '') + '</button>');
+      if (!D.cuenta.porRevisar) b.disabled = true;
+      b.addEventListener('click', function () { editorNotas(ambito, ref, refTitulo, c[0]); });
+      w.appendChild(b);
+    });
+    return w;
   }
 
   /** El contador de la barra de pestañas y del progreso, sin repintar todo. */
@@ -1061,7 +1081,7 @@
     if (notas.length) t.appendChild(listaNotas(notas, true));
 
     var pie = K.nodo('<div class="rv-obl__pie"></div>');
-    pie.appendChild(botonNota('obligacion', o.n, 'Obligación ' + o.n));
+    pie.appendChild(botonesNota('obligacion', o.n, 'Obligación ' + o.n));
     var bv = botonVisto('obl:' + o.n);
     bv.classList.add('rv-visto--grande');
     bv.insertAdjacentHTML('beforeend', '<span>' + (visto ? 'Revisada' : 'Marcar revisada') + '</span>');
@@ -1171,23 +1191,19 @@
   /* ---------- notas ---------- */
 
   function notasSeccion(k, titulo) {
-    var caja = K.nodo('<section class="kit-tarjeta grupo rv-notas-sec"><div class="rv-docs__cab"><h3 class="grupo__t">Notas de ' + K.esc(titulo.toLowerCase()) + '</h3></div></section>');
-    if (D.cuenta.porRevisar) {
-      var b = K.nodo('<button type="button" class="kit-btn kit-btn--plano">' + K.icono('lapiz', 15) + ' Agregar nota</button>');
-      b.addEventListener('click', function () { editorNotas('seccion', k, titulo); });
-      caja.firstChild.appendChild(b);
-    }
+    var caja = K.nodo('<section class="kit-tarjeta grupo rv-notas-sec"><div class="rv-docs__cab"><h3 class="grupo__t">Notas y observaciones de ' + K.esc(titulo.toLowerCase()) + '</h3></div></section>');
+    caja.appendChild(botonesNota('seccion', k, titulo));
     var n = notasDe('seccion', k);
     if (n.length) caja.appendChild(listaNotas(n, true));
-    else caja.appendChild(K.nodo('<p class="formulario__nota">Sin notas. Son internas: el contratista no las ve.</p>'));
+    else caja.appendChild(K.nodo('<p class="formulario__nota">Sin notas. La nota interna solo la ve el equipo; la observación para el contratista sale en el motivo si devuelves.</p>'));
     return caja;
   }
 
   function listaNotas(notas, compacta) {
     var ul = K.nodo('<ul class="rv-notas' + (compacta ? ' rv-notas--compacta' : '') + '"></ul>');
     notas.forEach(function (n) {
-      var li = K.nodo('<li class="rv-nota' + (n.nueva ? ' rv-nota--nueva' : '') + '">' +
-        '<p class="rv-nota__txt"></p>' +
+      var li = K.nodo('<li class="rv-nota' + (n.nueva ? ' rv-nota--nueva' : '') + (esObs(n) ? ' rv-nota--obs' : '') + '">' +
+        etiquetaNota(n) + '<p class="rv-nota__txt"></p>' +
         '<p class="rv-nota__pie">' + K.esc(nombre(n.autor)) + ' · ' + K.esc(n.nueva ? 'sin guardar' : (n.fecha || '')) +
         (n.editada ? ' · editada ' + K.esc(n.editada) : '') +
         (!compacta && n.refTitulo ? ' · <b>' + K.esc(n.refTitulo) + '</b>' : '') + '</p></li>');
@@ -1197,32 +1213,81 @@
     return ul;
   }
 
-  /** La capa para escribir, editar y quitar notas de un sitio. */
-  function editorNotas(ambito, ref, refTitulo) {
+  /**
+   * 29/09 · La capa para escribir, editar y quitar notas de un sitio, con DOS
+   * cajas: NOTA INTERNA (solo el equipo) y OBSERVACIÓN PARA EL CONTRATISTA (sale
+   * ya escrita en el motivo si la cuenta se devuelve). Todo se guarda con la
+   * revisión en curso, sin decidir la cuenta.
+   */
+  function editorNotas(ambito, ref, refTitulo, foco) {
     var cuerpo = K.nodo('<div class="rv-editor"></div>');
     var lista = K.nodo('<div class="rv-editor__lista"></div>');
     cuerpo.appendChild(lista);
-    var ta = K.nodo('<textarea class="rv-editor__ta" rows="4" maxlength="2000" placeholder="Qué viste, qué falta, qué hay que corregir…"></textarea>');
-    cuerpo.appendChild(ta);
-    cuerpo.appendChild(K.nodo('<p class="formulario__nota">Nota interna: el contratista no la ve, salvo que la pases al motivo de una devolución.</p>'));
+    var cajas = {};
+    [
+      ['interna', 'candado', 'Nota interna', 'Solo la ve el equipo. Nunca le llega al contratista.', 'Qué viste, qué falta, qué hay que mirar…'],
+      ['contratista', 'enviar', 'Observación para el contratista', 'Si devuelves la cuenta, sale ya escrita en el motivo. Si la apruebas, no se envía: queda en la bitácora.', 'Qué debe corregir o adjuntar…']
+    ].forEach(function (c) {
+      var id = 'rv-ta-' + c[0];
+      var bloque = K.nodo('<section class="rv-caja rv-caja--' + c[0] + '">' +
+        '<label class="rv-caja__t" for="' + id + '">' + K.icono(c[1], 15) + ' ' + c[2] + '</label>' +
+        '<p class="rv-caja__ayuda">' + c[3] + '</p>' +
+        '<textarea id="' + id + '" class="rv-editor__ta" rows="3" maxlength="2000" placeholder="' + c[4] + '"></textarea>' +
+        '<div class="rv-caja__pie"><button type="button" class="kit-btn kit-btn--plano rv-caja__b">' + K.icono('mas', 14) + ' <span>Agregar</span></button></div></section>');
+      var ta = bloque.querySelector('textarea');
+      var bt = bloque.querySelector('.rv-caja__b');
+      bt.addEventListener('click', function () { agregar(c[0]); ta.focus(); });
+      cajas[c[0]] = { ta: ta, bt: bt };
+      cuerpo.appendChild(bloque);
+    });
+
+    /** Pasa lo escrito en la caja a la bitácora (nueva o editada). true si agregó algo. */
+    function agregar(tipo) {
+      var c = cajas[tipo], t = c.ta.value.replace(/\r/g, '').trim();
+      if (!t) return false;
+      if (c.ta.dataset.edita) {
+        B.notas.forEach(function (n) {
+          if (n.id === c.ta.dataset.edita) { n.texto = t; n.para = tipo; n.editada_local = true; }
+        });
+        delete c.ta.dataset.edita;
+        guardarBorrador();
+      } else {
+        nuevaNota(ambito, ref, refTitulo, t, tipo);
+      }
+      c.ta.value = '';
+      c.bt.querySelector('span').textContent = 'Agregar';
+      K.vibrar(8);
+      pintarLista();
+      return true;
+    }
 
     function pintarLista() {
       lista.innerHTML = '';
       notasDe(ambito, ref).forEach(function (n) {
-        var f = K.nodo('<div class="rv-nota rv-nota--edit"><p class="rv-nota__txt"></p><p class="rv-nota__pie">' + K.esc(nombre(n.autor)) + ' · ' +
+        var f = K.nodo('<div class="rv-nota rv-nota--edit' + (esObs(n) ? ' rv-nota--obs' : '') + '">' + etiquetaNota(n) +
+          '<p class="rv-nota__txt"></p><p class="rv-nota__pie">' + K.esc(nombre(n.autor)) + ' · ' +
           K.esc(n.nueva ? 'sin guardar' : n.fecha) + '</p></div>');
         f.querySelector('.rv-nota__txt').textContent = n.texto;
         if (esMia(n)) {
           var acc = K.nodo('<div class="rv-nota__acc"></div>');
           var ed = K.nodo('<button type="button" class="kit-btn kit-btn--plano">Editar</button>');
           ed.addEventListener('click', function () {
-            ta.value = n.texto; ta.focus();
-            ta.dataset.edita = n.id;
-            guardarBtn.textContent = 'Guardar cambio';
+            var c = cajas[esObs(n) ? 'contratista' : 'interna'];
+            c.ta.value = n.texto; c.ta.focus();
+            c.ta.dataset.edita = n.id;
+            c.bt.querySelector('span').textContent = 'Guardar cambio';
+          });
+          var cambia = K.nodo('<button type="button" class="kit-btn kit-btn--plano">' + (esObs(n) ? 'Volverla interna' : 'Pasarla al contratista') + '</button>');
+          cambia.addEventListener('click', function () {
+            n.para = esObs(n) ? 'interna' : 'contratista';
+            n.editada_local = true;
+            guardarBorrador();
+            K.vibrar(6);
+            pintarLista();
           });
           var qu = K.nodo('<button type="button" class="kit-btn kit-btn--plano kit-btn--malo">Quitar</button>');
           qu.addEventListener('click', function () { quitarNotaLocal(n.id); pintarLista(); });
-          acc.appendChild(ed); acc.appendChild(qu);
+          acc.appendChild(ed); acc.appendChild(cambia); acc.appendChild(qu);
           f.appendChild(acc);
         }
         lista.appendChild(f);
@@ -1230,32 +1295,19 @@
     }
     pintarLista();
 
-    var guardarBtn;
     var m = modal({
       titulo: 'Notas · ' + refTitulo,
       cuerpo: cuerpo,
-      alCerrar: function () { irSeccion(B.posicion.seccion, 0, false, true); refrescarCuentas(); },
+      alCerrar: function () {
+        /* lo que quedó escrito sin tocar Agregar no se pierde (Listo, X, Escape o tocar afuera) */
+        agregar('interna'); agregar('contratista');
+        irSeccion(B.posicion.seccion, 0, false, true); refrescarCuentas();
+      },
       botones: [
-        { texto: 'Listo', al: function () { m.cerrar(); } },
-        { texto: 'Agregar nota', marca: true, al: function () {
-            var t = ta.value.replace(/\r/g, '').trim();
-            if (!t) { ta.focus(); return; }
-            if (ta.dataset.edita) {
-              B.notas.forEach(function (n) { if (n.id === ta.dataset.edita) { n.texto = t; n.editada_local = true; } });
-              delete ta.dataset.edita;
-              guardarBorrador();
-            } else {
-              nuevaNota(ambito, ref, refTitulo, t);
-            }
-            ta.value = '';
-            guardarBtn.textContent = 'Agregar nota';
-            K.vibrar(8);
-            pintarLista();
-          } }
+        { texto: 'Listo', marca: true, al: function () { m.cerrar(); } }
       ]
     });
-    guardarBtn = m.botones[1];
-    setTimeout(function () { ta.focus(); }, 120);
+    setTimeout(function () { cajas[foco === 'contratista' ? 'contratista' : 'interna'].ta.focus(); }, 120);
   }
 
   /* ---------- la pestaña Bitácora ---------- */
@@ -1263,15 +1315,12 @@
   function secBitacora(z) {
     var cu = D.cuenta;
     /* nota general */
-    var gen = K.nodo('<section class="kit-tarjeta grupo"><div class="rv-docs__cab"><h3 class="grupo__t">Notas generales</h3></div></section>');
-    if (cu.porRevisar) {
-      var b = K.nodo('<button type="button" class="kit-btn kit-btn--plano">' + K.icono('lapiz', 15) + ' Agregar nota</button>');
-      b.addEventListener('click', function () { editorNotas('general', 'general', 'Nota general'); });
-      gen.firstChild.appendChild(b);
-    }
+    var gen = K.nodo('<section class="kit-tarjeta grupo"><div class="rv-docs__cab"><h3 class="grupo__t">Notas y observaciones generales</h3></div></section>');
+    gen.appendChild(botonesNota('general', 'general', 'General'));
     var ng = notasDe('general', 'general');
     gen.appendChild(ng.length ? listaNotas(ng, true) : K.nodo('<p class="formulario__nota">Sin notas generales.</p>'));
     z.appendChild(gen);
+    z.appendChild(cajaLeLlega());
 
     /* todas las notas de esta ronda */
     var todas = K.nodo('<section class="kit-tarjeta grupo"><h3 class="grupo__t">Todas las notas de esta revisión (' + B.notas.length + ')</h3></section>');
@@ -1288,6 +1337,68 @@
 
     /* la historia: quién y cuándo */
     z.appendChild(historia());
+  }
+
+  /* ---------- 29/09 · observaciones para el contratista ---------- */
+
+  function esObs(n) { return !!n && n.para === 'contratista'; }
+
+  function etiquetaNota(n) {
+    return esObs(n)
+      ? '<p class="rv-nota__tipo rv-nota__tipo--obs">' + K.icono('enviar', 12) + ' Para el contratista</p>'
+      : '<p class="rv-nota__tipo">' + K.icono('candado', 12) + ' Interna</p>';
+  }
+
+  var ORDEN_SEC = { contrato: 1, pago: 2, planilla: 3, actividades: 4 };
+
+  /** Las observaciones para el contratista en el orden de la revisión: generales, contrato, pago, planilla y obligaciones. */
+  function observaciones() {
+    if (!B) return [];
+    var docSec = {}, docPos = {};
+    try { todosLosDocs().forEach(function (d, i) { docSec[d.id] = d.seccion; docPos[d.id] = i; }); } catch (e) {}
+    var peso = function (n) {
+      if (n.ambito === 'general') return [0, 0, 0];
+      if (n.ambito === 'seccion') return [ORDEN_SEC[n.ref] || 5, 0, 0];
+      if (n.ambito === 'documento') return [ORDEN_SEC[docSec[n.ref]] || 5, 1, docPos[n.ref] !== undefined ? docPos[n.ref] : 999];
+      if (n.ambito === 'obligacion') return [ORDEN_SEC.actividades, 2, Number(n.ref) || 0];
+      return [6, 0, 0];
+    };
+    return B.notas.filter(esObs).map(function (n, i) { return { n: n, k: peso(n), i: i }; })
+      .sort(function (a, b) { return (a.k[0] - b.k[0]) || (a.k[1] - b.k[1]) || (a.k[2] - b.k[2]) || (a.i - b.i); })
+      .map(function (x) { return x.n; });
+  }
+
+  /** El motivo armado: una línea por observación ("• Obligación 3: …", "• Planilla: …"). */
+  function textoObservaciones() {
+    return observaciones().map(function (n) {
+      var t = String(n.texto || '').replace(/\r/g, '').trim().replace(/\n+/g, '\n  ');
+      var et = n.ambito === 'general' ? '' : String(n.refTitulo || '').trim();
+      return '• ' + (et ? et + ': ' : '') + t;
+    }).join('\n');
+  }
+
+  /** En la Bitácora: lo que le llegaría al contratista si hoy se devuelve. */
+  function cajaLeLlega() {
+    var obs = observaciones();
+    var caja = K.nodo('<section class="kit-tarjeta grupo rv-lellega"><h3 class="grupo__t">' + K.icono('enviar', 16) +
+      ' Si devuelves, le llega esto · ' + obs.length + (obs.length === 1 ? ' observación' : ' observaciones') + '</h3></section>');
+    if (!obs.length) {
+      caja.appendChild(K.nodo('<p class="formulario__nota">Aún no hay observaciones para el contratista. Déjalas en cada obligación y documento con “Para el contratista”.</p>'));
+      return caja;
+    }
+    var pre = K.nodo('<pre class="rv-lellega__txt"></pre>');
+    pre.textContent = textoObservaciones();
+    caja.appendChild(pre);
+    caja.appendChild(K.nodo('<p class="formulario__nota">Al tomar la decisión sale ya escrito y lo puedes editar. Las notas internas nunca se envían.</p>'));
+    return caja;
+  }
+
+  /** Al aprobar: las observaciones no salen. */
+  function avisoObsAprobar(zona) {
+    var n = observaciones().length;
+    if (!n) return;
+    zona.appendChild(K.nodo('<p class="rv-dec__txt rv-dec__obs">' + K.icono('enviar', 15) + '<span>' + (n === 1 ? 'Tu observación' : 'Tus <b>' + n + ' observaciones</b>') +
+      ' para el contratista <b>no se ' + (n === 1 ? 'envía' : 'envían') + '</b> al aprobar: ' + (n === 1 ? 'queda' : 'quedan') + ' en la bitácora.</span></p>'));
   }
 
   function ordenarNotas(n) {
@@ -1396,6 +1507,9 @@
     cuerpo.appendChild(K.nodo('<label class="rv-dec__et" for="sp-nota">Nota para el supervisor · <b>interna</b> (el contratista no la ve)</label>'));
     var ta = K.nodo('<textarea id="sp-nota" class="rv-editor__ta" rows="4" maxlength="2000" placeholder="Opcional con visto bueno. Con inconsistencia, di cuál es (o déjala en la bitácora)."></textarea>');
     cuerpo.appendChild(ta);
+    var nObs = observaciones().length;
+    if (nObs) cuerpo.appendChild(K.nodo('<p class="rv-dec__txt rv-dec__obs">' + K.icono('enviar', 15) + '<span>Dejaste <b>' + nObs +
+      (nObs === 1 ? ' observación' : ' observaciones') + ' para el contratista</b>. Si el supervisor devuelve o marca incompleta la cuenta, le salen ya escritas en el motivo.</span></p>'));
     cuerpo.appendChild(K.nodo('<p class="rv-dec__txt">La cuenta <b>no cambia de estado</b>: tu concepto queda en la tarjeta con tu nombre, la fecha y la hora, y tus notas se guardan con él.</p>'));
     var eleccion = '';
     function elegir(e) {
@@ -1761,32 +1875,37 @@
         zona.appendChild(K.nodo('<label class="rv-dec__et" for="rv-motivo">Nota para Contratación (opcional)</label>'));
         ta = K.nodo('<textarea id="rv-motivo" class="rv-editor__ta" rows="3" maxlength="3000" placeholder="Si hay algo que Contratación deba saber"></textarea>');
         zona.appendChild(ta);
+        avisoObsAprobar(zona);
       } else {
         var inc = e === 'INCOMPLETA';
         zona.appendChild(K.nodo('<label class="rv-dec__et" for="rv-motivo">' + (inc ? 'Qué soportes faltan' : 'Motivo de la devolución') + ' · <b>lo lee el contratista</b></label>'));
-        ta = K.nodo('<textarea id="rv-motivo" class="rv-editor__ta" rows="6" maxlength="3000" placeholder="' + (inc ? 'Un soporte por línea' : 'Qué debe corregir, uno por línea') + '"></textarea>');
+        ta = K.nodo('<textarea id="rv-motivo" class="rv-editor__ta rv-dec__motivo" rows="8" maxlength="3000" placeholder="' + (inc ? 'Un soporte por línea' : 'Qué debe corregir, uno por línea') + '"></textarea>');
         zona.appendChild(ta);
         var cont = K.nodo('<p class="rv-dec__cont">0 / 3.000</p>');
         zona.appendChild(cont);
-        var notas = ordenarNotas(B.notas);
-        if (notas.length) {
-          var cab = K.nodo('<div class="rv-docs__cab"><p class="rv-dec__et">Tus notas de la revisión · pásalas con un toque</p></div>');
-          var todas = K.nodo('<button type="button" class="kit-btn kit-btn--plano">Pasar todas</button>');
-          cab.appendChild(todas);
-          zona.appendChild(cab);
-          var ul = K.nodo('<ul class="rv-pasar"></ul>');
-          var botones = [];
-          notas.forEach(function (n) {
-            var li = K.nodo('<li><span class="rv-pasar__t"><b>' + K.esc(n.refTitulo || 'General') + ':</b> </span></li>');
-            li.querySelector('.rv-pasar__t').appendChild(document.createTextNode(n.texto));
-            var b = K.nodo('<button type="button" class="kit-btn kit-btn--plano rv-pasar__b">' + K.icono('mas', 14) + ' Pasar</button>');
-            b.addEventListener('click', function () { pasar(n, b); });
-            botones.push([n, b]);
-            li.appendChild(b);
-            ul.appendChild(li);
-          });
-          todas.addEventListener('click', function () { botones.forEach(function (x) { if (!x[1].disabled) pasar(x[0], x[1]); }); });
-          zona.appendChild(ul);
+        /* 29/09 · el motivo sale ARMADO con las observaciones para el contratista; se edita y se confirma */
+        var obs = observaciones();
+        var armado = textoObservaciones();
+        B.motivos = B.motivos || {};
+        ta.value = B.motivos[e] !== undefined ? B.motivos[e] : armado;
+        var info = K.nodo('<div class="rv-dec__arma"></div>');
+        if (obs.length) {
+          info.appendChild(K.nodo('<p class="rv-dec__txt rv-dec__obs">' + K.icono('enviar', 15) + '<span>Armado con ' + (obs.length === 1 ? 'la <b>observación' : 'las <b>' + obs.length + ' observaciones') +
+            ' para el contratista</b> de la revisión, en orden. Edítalo si hace falta y confirma.</span></p>'));
+          var re = K.nodo('<button type="button" class="kit-btn kit-btn--plano rv-dec__rearma">' + K.icono('recargar', 14) + ' Volver a armarlo</button>');
+          re.addEventListener('click', function () { ta.value = armado; delete B.motivos[e]; ta.dispatchEvent(new Event('input')); K.vibrar(6); });
+          info.appendChild(re);
+        } else {
+          info.appendChild(K.nodo('<p class="rv-dec__txt rv-dec__obs rv-dec__obs--vacio">' + K.icono('aviso', 15) + '<span>No dejaste observaciones para el contratista en la revisión: escribe aquí ' +
+            (e === 'INCOMPLETA' ? 'qué soportes faltan' : 'el motivo') + '.</span></p>'));
+        }
+        zona.insertBefore(info, ta);
+        ta.addEventListener('input', function () { B.motivos[e] = ta.value; });
+        var internas = B.notas.filter(function (n) { return !esObs(n); });
+        if (internas.length) {
+          var det = K.nodo('<details class="rv-dec__int"><summary>' + K.icono('candado', 13) + ' Notas internas de la revisión · ' + internas.length + ' · <b>no se envían</b></summary></details>');
+          det.appendChild(listaNotas(ordenarNotas(internas), false));
+          zona.appendChild(det);
         }
         var prev = K.nodo('<div class="rv-dec__prev"><p class="rv-dec__et">Así le llega al contratista</p><pre></pre></div>');
         zona.appendChild(prev);
@@ -1805,15 +1924,6 @@
         setTimeout(function () { ta.focus(); }, 80);
       }
       m.botones[1].disabled = false;
-    }
-
-    function pasar(n, b) {
-      var linea = '• ' + (n.refTitulo && n.ambito !== 'general' ? n.refTitulo + ': ' : '') + n.texto;
-      ta.value = (ta.value.trim() ? ta.value.replace(/\s+$/, '') + '\n' : '') + linea;
-      ta.dispatchEvent(new Event('input'));
-      b.disabled = true;
-      b.innerHTML = K.icono('check', 14) + ' Pasada';
-      K.vibrar(6);
     }
 
     bA.addEventListener('click', function () { K.vibrar(6); elegir('APROBAR'); });
@@ -1836,6 +1946,11 @@
       var motivo = ta ? ta.value.replace(/\r/g, '').trim() : '';
       if (eleccion !== 'APROBAR' && motivo.length < 10) {
         K.aviso(eleccion === 'INCOMPLETA' ? 'Escribe qué soportes faltan: es lo que va a leer el contratista.' : 'Escribe el motivo: es lo que va a leer el contratista.', 'aviso', 5000);
+        if (ta) ta.focus();
+        return;
+      }
+      if (motivo.length > 3000) {
+        K.aviso('El texto pasa de 3.000 caracteres: resúmelo un poco antes de confirmar.', 'aviso', 6000);
         if (ta) ta.focus();
         return;
       }
@@ -2021,6 +2136,7 @@
     _visibles: function () { return cuentas().filter(function (c) { return pasa(c); }); },
     _detalle: function () { return D; },
     _bitacora: function () { return B; },
+    _observaciones: function () { return textoObservaciones(); },
     _puntos: function () { return D ? puntos() : []; },
     _docs: function () { return D ? todosLosDocs() : []; }
   };

@@ -2287,10 +2287,6 @@
 .rv-dec__et { margin: 0; font: 700 .74rem/1.3 var(--k-fuente); color: var(--k-apagado); text-transform: uppercase; letter-spacing: .3px; }
 .rv-dec__et b { color: var(--k-malo); }
 .rv-dec__cont { margin: -4px 0 0; text-align: right; font: 400 .72rem/1 var(--k-fuente); color: var(--k-apagado); }
-.rv-pasar { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; }
-.rv-pasar li { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border-radius: var(--k-r-md); background: var(--k-aviso-fondo); }
-.rv-pasar__t { flex: 1 1 auto; min-width: 0; font: 400 .82rem/1.4 var(--k-fuente); white-space: pre-line; overflow-wrap: anywhere; }
-.rv-pasar__b { flex: 0 0 auto; min-height: 32px; padding: 0 10px; font-size: .76rem; }
 .rv-dec__prev pre {
   margin: 6px 0 0; padding: 12px; border-radius: var(--k-r-md); background: var(--k-papel-2); border: 1px dashed var(--k-linea);
   white-space: pre-wrap; font: 400 .8rem/1.45 var(--k-fuente); color: var(--k-tinta-2); max-height: 200px; overflow-y: auto;
@@ -2618,3 +2614,64 @@
 
 /* 25/09 · el resumen del inicio va debajo de su título (la hoja base lo sube sobre la franja del contratista) */
 .bloque > .resumen { margin-top: 0; }
+
+/* ---------- 29/09 · observaciones para el contratista ---------- */
+.rv-nota--obs { background: rgba(var(--k-marca-rgb), .08); border-left-color: var(--k-marca); }
+.rv-nota__tipo {
+  display: inline-flex; align-items: center; gap: 4px; margin: 0 0 4px; padding: 1px 8px; border-radius: var(--k-r-pill);
+  font: 700 .64rem/1.6 var(--k-fuente); letter-spacing: .3px; text-transform: uppercase;
+  background: var(--k-papel-2); color: var(--k-apagado); border: 1px solid var(--k-linea);
+}
+.rv-nota__tipo--obs { background: var(--k-marca); color: #fff; border-color: var(--k-marca); }
+.rv-nota__acc { flex-wrap: wrap; }
+.rv-nota-b--obs { border-color: var(--k-marca); color: var(--k-marca); box-shadow: 0 0 0 3px rgba(var(--k-marca-rgb), .14); }
+.rv-nota-b--obs i { background: var(--k-marca); }
+
+.rv-nota-bs { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.rv-notas-sec .rv-nota-bs { margin: 2px 0 4px; }
+.rv-nota-l {
+  appearance: none; cursor: pointer; position: relative; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px;
+  border-radius: var(--k-r-pill); border: 1.5px solid var(--k-linea); background: var(--k-papel); color: var(--k-tinta-2);
+  font: 600 .78rem/1 var(--k-fuente); transition: background .16s ease, border-color .16s ease, transform .12s ease;
+}
+.rv-nota-l:active { transform: scale(.96); }
+.rv-nota-l:disabled { opacity: .45; cursor: default; }
+.rv-nota-l svg { flex: 0 0 auto; }
+.rv-nota-l--interna.rv-nota-l--con { border-color: var(--k-aviso); color: var(--k-aviso); background: var(--k-aviso-fondo); }
+.rv-nota-l--contratista { color: var(--k-marca); }
+.rv-nota-l--contratista.rv-nota-l--con { border-color: var(--k-marca); background: rgba(var(--k-marca-rgb), .1); }
+.rv-nota-l i {
+  min-width: 18px; height: 18px; padding: 0 5px; border-radius: var(--k-r-pill); font: 700 10px/18px var(--k-fuente); font-style: normal;
+  background: currentColor; color: var(--k-papel); text-align: center;
+}
+.rv-nota-l--contratista i { background: var(--k-marca); color: #fff; }
+.rv-nota-l--interna i { background: var(--k-aviso); color: #fff; }
+
+.rv-caja { display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: var(--k-r-md); border: 1.5px solid var(--k-linea); background: var(--k-papel); }
+.rv-caja--contratista { border-color: rgba(var(--k-marca-rgb), .55); background: rgba(var(--k-marca-rgb), .05); }
+.rv-caja__t { display: flex; align-items: center; gap: 6px; font: 800 .8rem/1.3 var(--k-fuente); text-transform: uppercase; letter-spacing: .3px; color: var(--k-tinta); }
+.rv-caja--contratista .rv-caja__t { color: var(--k-marca); }
+.rv-caja__ayuda { margin: 0; font: 400 .76rem/1.4 var(--k-fuente); color: var(--k-apagado); }
+.rv-caja .rv-editor__ta { min-height: 76px; }
+.rv-caja__pie { display: flex; justify-content: flex-end; }
+.rv-caja__b { min-height: 34px; padding: 0 14px; font-size: .8rem; }
+
+.rv-lellega { gap: 8px; border-color: rgba(var(--k-marca-rgb), .45); }
+.rv-lellega .grupo__t { display: flex; align-items: center; gap: 6px; color: var(--k-marca); }
+.rv-lellega__txt {
+  margin: 0; padding: 12px; border-radius: var(--k-r-md); background: var(--k-papel-2); border: 1px dashed var(--k-linea);
+  white-space: pre-wrap; overflow-wrap: anywhere; font: 400 .84rem/1.5 var(--k-fuente); color: var(--k-tinta);
+}
+
+.rv-dec__arma { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.rv-dec__arma .rv-dec__txt { flex: 1 1 260px; }
+.rv-dec__obs { display: flex; gap: 8px; align-items: flex-start; font-size: .84rem; color: var(--k-tinta-2); }
+.rv-dec__obs svg { flex: 0 0 auto; margin-top: 3px; color: var(--k-marca); }
+.rv-dec__obs--vacio svg { color: var(--k-aviso); }
+.rv-dec__rearma { min-height: 34px; padding: 0 12px; font-size: .78rem; }
+.rv-dec__motivo { min-height: 150px; }
+.rv-dec__int { border: 1px solid var(--k-linea); border-radius: var(--k-r-md); padding: 8px 10px; background: var(--k-papel-2); }
+.rv-dec__int summary { cursor: pointer; display: flex; align-items: center; gap: 6px; font: 600 .78rem/1.4 var(--k-fuente); color: var(--k-apagado); }
+.rv-dec__int summary b { color: var(--k-malo); }
+.rv-dec__int .rv-notas { margin-top: 8px; max-height: 220px; overflow-y: auto; }
+.rv-obl__pie { flex-wrap: wrap; }
