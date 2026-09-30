@@ -115,6 +115,18 @@
     return CARGANDO;
   }
 
+  /** 30/09 · la lista viene dentro de un 'inicio' que ya va en camino: se espera
+      a ese viaje. Si el CORE todavía no la manda, se pide 'cuentas' como antes. */
+  function esperar(pI) {
+    if (LISTA || CARGANDO) return;
+    var p = pI.then(function (d) {
+      if (CARGANDO === p) CARGANDO = null;
+      if (d && d.cuentas) { recibir(d.cuentas); return LISTA; }
+      return cargar(false);
+    }, function () { if (CARGANDO === p) CARGANDO = null; return cargar(false); });
+    CARGANDO = p;
+  }
+
   function cuentas() { return (LISTA && LISTA.cuentas) || []; }
 
   /** Cuántas hay en cada estado (el inicio las pinta sin otro viaje). */
@@ -396,24 +408,25 @@
 
     if (!q.fila || !q.id) { caja.appendChild(C.errorCaja(new Error('Falta la cuenta.'), function () { C.irA('revisar'); })); return; }
 
-    /* 7.0 · el detalle viene 'ligero' (sin historial ni historia de APROBADAS:
-       ~2 s menos de servidor) y esas dos cosas llegan EN PARALELO por
-       'cuentaHistorial'. Solo se ven en Pago, Planilla y Bitácora. */
-    var p = leer('cuentaRevision', { fila: q.fila, id: q.id, informe: q.informe, ligero: true });
-    var pH = leer('cuentaHistorial', q);
-    pH['catch'](function () {});        /* el error lo atiende recibirHistorial (o no importa: CORE viejo) */
-    HIST_P = pH;
+    /* 30/09 · UN SOLO VIAJE. El detalle viene 'ligero' y con la carpeta de la
+       cuenta dentro (conArchivos): antes eran tres viajes a la vez
+       (cuentaRevision + cuentaHistorial + revisionArchivos) y en Apps Script
+       las llamadas simultáneas se frenan entre sí. El historial (pagos,
+       planillas, historia de la cuenta) se pide SOLO al abrir Pago, Planilla
+       o Bitácora (pedirHistorial). Con un CORE sin desplegar la carpeta se
+       pide aparte, como antes. */
+    HIST_P = null;
+    var p = leer('cuentaRevision', { fila: q.fila, id: q.id, informe: q.informe, ligero: true, conArchivos: true });
     /* 5.4 · pdf.js y su trabajador se bajan ya, no con el primer documento */
     if (K.piezas.visor && K.piezas.visor.precalentar) K.piezas.visor.precalentar();
-    /* la carpeta se pide a la vez: tarda más (Drive) y no frena lo demás.
-       5.4: revisionArchivos trae además el boleto de cada archivo para bajar
-       los documentos en segundo plano. Si el CORE todavía no la tiene, se usa
-       la de la 5.3 y el visor pide cada documento al tocarlo, como antes. */
     if (window.DOCS_REV) window.DOCS_REV.olvidar();
-    CARPETA_P = leer('revisionArchivos', q).then(function (r) {
+    CARPETA_P = p.then(function (d) {
+      if (d && d.archivosCuenta) return d.archivosCuenta;
+      return leer('revisionArchivos', q);          /* CORE viejo, o la carpeta falló dentro del detalle */
+    }, function () { var x = new Error('Sin detalle'); x.sinDetalle = true; throw x; }).then(function (r) {
       if (window.DOCS_REV) window.DOCS_REV.recibir(q, r);
       return r;
-    }, function () { return leer('revisionDocs', q); }).then(function (r) {
+    }, function (e) { if (e && e.sinDetalle) throw e; return leer('revisionDocs', q); }).then(function (r) {
       CARPETA = { carpeta: !!(r && r.carpeta), grupos: (r && r.grupos) || [] };
       if (D) { repintarDocs(); precargar(); }
       return CARPETA;
@@ -425,7 +438,7 @@
        llega detrás y pintar() reemplaza todo con lo completo. */
     var zona = cabeceraPrevia(caja, q) || caja;
     K.piezas.esqueletos.mientras(zona, p, { forma: 'texto', cuantos: 8 })
-      .then(function (d) { D = d; iniciarBitacora(); pintar(caja); if (CARPETA) precargar(); recibirHistorial(pH, d); })
+      .then(function (d) { D = d; iniciarBitacora(); pintar(caja); if (CARPETA) precargar(); })
       ['catch'](function (e) { zona.appendChild(C.errorCaja(e, function () { C.app.innerHTML = ''; detalle(sub); })); });
   }
 
@@ -470,6 +483,17 @@
     });
   }
 
+  /** 30/09 · el historial se pide la primera vez que una pestaña lo muestra
+      (Pago, Planilla o Bitácora), no al abrir la cuenta. */
+  function pedirHistorial() {
+    if (!D || !D.historialPendiente || D.historialError || HIST_P) return;
+    var d = D;
+    var pH = leer('cuentaHistorial', { fila: d.cuenta.fila, id: d.cuenta.idContrato, informe: d.cuenta.informe });
+    pH['catch'](function () {});
+    HIST_P = pH;
+    recibirHistorial(pH, d);
+  }
+
   function reintentarHistorial() {
     if (!D) return;
     var d = D;
@@ -509,6 +533,7 @@
       b.addEventListener('click', reintentarHistorial);
       caja.appendChild(b);
     } else {
+      pedirHistorial();
       caja.appendChild(K.nodo('<p class="formulario__nota">Trayendo el historial del contrato…</p>'));
       if (K.piezas.esqueletos) K.piezas.esqueletos.poner(caja, { forma: 'texto', cuantos: 2 });
     }
@@ -2161,7 +2186,7 @@
 
   window.REVISION = {
     configurar: function (o) { C = o || {}; },
-    recibir: recibir, cargar: cargar, lista: lista, detalle: detalle,
+    recibir: recibir, cargar: cargar, esperar: esperar, lista: lista, detalle: detalle,
     olvidar: function () { LISTA = null; D = null; B = null; K.guardar.borrar(FILTRO_K); F = leerFiltro(); if (window.DOCS_REV) window.DOCS_REV.olvidar(); },
     filtrar: function (f) { F = { est: f.est || '', rev: f.rev || '', sec: f.sec || '', sup: f.sup || '', busca: '' }; guardarFiltro(); },
     pendientes: function () { return LISTA ? LISTA.cuentas.length : null; },

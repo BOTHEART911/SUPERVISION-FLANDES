@@ -469,11 +469,48 @@
     FICHA = null;
 
     var p = K.pedir('contratistaDetalle', { idContrato: id });
-    K.piezas.esqueletos.mientras(caja, p, { forma: 'texto', cuantos: 8 })
+    var f0 = null;
+    try { f0 = filaDeLista(id); } catch (e) { f0 = null; }
+    var zona = caja;
+    if (f0) {
+      caja.appendChild(cabeceraPrevia(f0));
+      zona = K.nodo('<div class="ct-ficha__resto"></div>');
+      caja.appendChild(zona);
+    }
+    K.piezas.esqueletos.mientras(zona, p, { forma: 'texto', cuantos: f0 ? 6 : 8 })
       .then(function (d) { FICHA = d; pintarFicha(caja, d); })
       ['catch'](function (e) {
-        caja.appendChild(C.errorCaja(e, function () { C.app.innerHTML = ''; detalle(sub); }));
+        zona.appendChild(C.errorCaja(e, function () { C.app.innerHTML = ''; detalle(sub); }));
       });
+  }
+
+  /** 30/09 · LA CABECERA Y LOS BOTONES PRIMERO. Con la fila que ya está en la
+      lista (foto, nombre, contrato, estado, WhatsApp, Drive, gestión) se pinta
+      de una vez; los datos del contrato llegan detrás y pintarFicha() reemplaza todo. */
+  function cabeceraPrevia(f) {
+    var cab = K.nodo('<section class="kit-tarjeta ct-ficha__cab"></section>');
+    if (K.piezas.personas) cab.appendChild(K.piezas.personas.avatar(f.nombre, { tam: 76, foto: f.img || '' }));
+    var marcas = '<span class="kit-pastilla ' + (f.estado === 'ACTIVO' ? 'kit-pastilla--ok' : 'kit-pastilla--aviso') + '" aria-pressed="true">' + K.esc(f.estado) + '</span>';
+    if (f.tramo) marcas += '<span class="ct-marca">' + K.esc(f.tramo) + '</span>';
+    if (f.adic) marcas += '<span class="ct-marca ct-marca--adic">ADICIONADO</span>';
+    if (f.cedido) marcas += '<span class="ct-marca ct-marca--ced">CEDIDO</span>';
+    if (f.susp) marcas += '<span class="ct-marca ct-marca--susp">' + K.icono('pausa', 11) + ' SUSPENDIDO ' + K.esc(f.susp) + '</span>';
+    cab.appendChild(K.nodo(
+      '<div class="ct-ficha__quien">' +
+      '  <h2>' + K.esc(nombre(f.nombre)) + '</h2>' +
+      '  <p>CC/NIT ' + K.esc(f.doc) + ' · Contrato ' + K.esc(f.contrato) + '</p>' +
+      '  <div class="ct-t__marcas">' + marcas + '</div>' +
+      '</div>'
+    ));
+    cab.appendChild(acciones(f, true));
+    var gF = gestion(f);
+    if (gF) cab.appendChild(gF);
+    return cab;
+  }
+
+  function filaDeLista(id) {
+    var k = K.norm(id);
+    return (TODAS || []).filter(function (x) { return K.norm(x.id) === k; })[0] || null;
   }
 
   function pintarFicha(caja, d) {

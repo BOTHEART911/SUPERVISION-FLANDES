@@ -77,14 +77,20 @@
       ? K.piezas.esqueletos.poner(app, { forma: 'ficha', cuantos: 1, sitio: 'reemplaza', espera: 'Cargando tu supervisión' })
       : function () {};
 
-    return (yaVino ? Promise.resolve(yaVino) : recordado ? Promise.resolve(recordado) : leer('inicio')).then(function (d) {
+    /* 30/09 · con el recuerdo, el inicio fresco sale YA (no a los 30 ms) y la lista
+       de cuentas del inicio lo espera a él: un solo viaje, no 'inicio' + 'cuentas'. */
+    if (recordado && K.recuerdo) refrescarArranque();
+    return (yaVino ? Promise.resolve(yaVino) : recordado ? Promise.resolve(recordado) : leer('inicio', { conCuentas: true })).then(function (d) {
+      /* 30/09 · las cuentas (y sus conteos) viajan dentro de 'inicio' */
+      if (d.cuentas && window.REVISION) window.REVISION.recibir(d.cuentas);
       ARRANQUE = d;
       YO = d.yo || YO;
       if (d.personas && K.piezas.personas) K.piezas.personas.cargar(d.personas);
       if (d.push && K.piezas.avisos && K.piezas.avisos.configurar) K.piezas.avisos.configurar(d.push);
       if (d.config && K.piezas.guia) K.piezas.guia.configurar(d.config);   /* guías rápidas: el id del PDF de cada app llega en la configuración pública */
       if (d.config && K.piezas.creditos && K.piezas.creditos.configurar) K.piezas.creditos.configurar(d.config);
-      if (K.recuerdo) { if (recordado) setTimeout(refrescarArranque, 30); else K.recuerdo.guardar(d); }
+      /* la lista de trabajo no se guarda en el recuerdo: siempre llega fresca */
+      if (K.recuerdo && !recordado) K.recuerdo.guardar(sinCuentas(d));
       quitar();
       return d;
     }, function (e) {
@@ -94,8 +100,18 @@
   }
   /* 25/09 · el 'inicio' de verdad, por detrás: se aplica, se guarda y, si la
      persona sigue en el inicio, se vuelve a pintar con lo nuevo. */
+  function sinCuentas(d) {
+    if (!d || d.cuentas === undefined) return d;
+    var o = {}, k;
+    for (k in d) if (Object.prototype.hasOwnProperty.call(d, k) && k !== 'cuentas') o[k] = d[k];
+    return o;
+  }
+
   function refrescarArranque() {
-    leer('inicio').then(function (d) {
+    var pI = leer('inicio', { conCuentas: true });
+    /* la lista del inicio espera a este viaje en vez de pedir 'cuentas' aparte */
+    if (window.REVISION && window.REVISION.esperar) window.REVISION.esperar(pI);
+    pI.then(function (d) {
       return arranque(false, { arranque: d, refresco: true });
     }).then(function () {
       var v = String(location.hash || '').replace(/^#\/?/, '').split('/')[0] || 'inicio';
@@ -128,6 +144,7 @@
         sub: 'Ingresa con tu documento y contraseña',
         imagen: M.APP_ICON || 'img/icono-512.png',
         arranqueEnLogin: true,   /* 7.0: el login trae el inicio en el mismo viaje */
+        datosArranque: function () { return { conCuentas: true }; },   /* 30/09 · y dentro, las cuentas */
         comprobar: function (login) { return arranque(true, login).then(function (d) { return d.yo; }); },
         alEntrar: arrancar
       });

@@ -58,9 +58,30 @@
   function cargar(fresco) {
     if (DATA && !fresco) return Promise.resolve(DATA);
     if (CARGANDO && !fresco) return CARGANDO;
-    CARGANDO = O.leer('requerimientos').then(function (d) { CARGANDO = null; recibir(d); return DATA; },
-      function (e) { CARGANDO = null; throw e; });
+    /* 30/09 · UN SOLO VIAJE: si el teléfono todavía no tiene la lista de
+       contratistas (o se refresca), viene dentro de 'requerimientos'
+       (conLista). Antes eran dos viajes a la vez, y el de la lista podía
+       repetir el arranque entero. */
+    var L = window.CONTRATISTAS;
+    var conLista = !!L && (!!fresco || !L.todas().length);
+    LISTA_VINO = false;
+    CARGANDO = O.leer('requerimientos', conLista ? { conLista: true, fresco: !!fresco } : {}).then(function (d) {
+      CARGANDO = null;
+      if (d && d.contratistas && L) { L.recibir(d.contratistas); LISTA_VINO = true; }
+      recibir(d); return DATA;
+    }, function (e) { CARGANDO = null; throw e; });
     return CARGANDO;
+  }
+  var LISTA_VINO = false;
+
+  /** Con un CORE sin desplegar la lista no viene: se pide aparte, como antes. */
+  function conContratistas(fresco) {
+    return cargar(fresco).then(function () {
+      var L = window.CONTRATISTAS;
+      if (!L) return null;
+      if (fresco) return LISTA_VINO ? null : L.cargar(true);
+      return L.todas().length ? null : L.cargar(false);
+    });
   }
 
   function contratistas() { return window.CONTRATISTAS ? window.CONTRATISTAS.todas() : []; }
@@ -100,7 +121,7 @@
       placeholder: 'Nombre, documento, contrato o texto', valor: F.busca,
       alBuscar: function (q) { F.busca = q; pintar(); },
       alRefrescar: function () {
-        return Promise.all([cargar(true), window.CONTRATISTAS ? window.CONTRATISTAS.cargar(true) : null]).then(function () { montarPastillas(); pintar(); });
+        return conContratistas(true).then(function () { montarPastillas(); pintar(); });
       }
     });
     caja.appendChild(b.caja);
@@ -328,7 +349,7 @@
       return t;
     }
 
-    K.piezas.esqueletos.mientras(rej, Promise.all([cargar(false), window.CONTRATISTAS ? window.CONTRATISTAS.cargar() : null]),
+    K.piezas.esqueletos.mientras(rej, conContratistas(false),
       { forma: 'tarjetas', cuantos: 4 })
       .then(function () { montarPastillas(); pintar(); })
       ['catch'](function (e) { caja.appendChild(C.errorCaja(e)); });

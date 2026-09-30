@@ -39,9 +39,14 @@
   function directorio() {
     var c = caja();
     var p = DIR ? Promise.resolve(DIR) : O.leer('directorio').then(function (l) { DIR = l || []; return DIR; });
-    K.piezas.esqueletos.mientras(c, p, { forma: 'filas', cuantos: 6, espera: 'Trayendo el directorio' })
+    /* 30/09 · la cabecera primero; la lista llega detrás */
+    O.cabecera(c, 'ubicacion', 'DIRECTORIO INSTITUCIONAL',
+      'Las dependencias de la Alcaldía: dónde quedan, su correo y sus líneas. Toca para escribir, llamar o llegar.');
+    var zona = K.nodo('<div></div>');
+    c.appendChild(zona);
+    K.piezas.esqueletos.mientras(zona, p, { forma: 'filas', cuantos: 6, espera: 'Trayendo el directorio' })
       .then(function () { pintarDirectorio(c); })
-      ['catch'](function (e) { c.appendChild(C.errorCaja(e, function () { DIR = null; C.app.innerHTML = ''; directorio(); })); });
+      ['catch'](function (e) { zona.appendChild(C.errorCaja(e, function () { DIR = null; C.app.innerHTML = ''; directorio(); })); });
   }
 
   function pintarDirectorio(c) {
@@ -178,13 +183,12 @@
       'La firma es la que sale en tus informes de supervisión y en las actas. La foto es la misma en todas las apps de la Alcaldía.');
     var zona = K.nodo('<div class="pf"></div>');
     c.appendChild(zona);
-    K.piezas.esqueletos.mientras(zona, O.leer('firma'), { forma: 'ficha', cuantos: 1, espera: 'Trayendo tu firma' })
-      .then(function (f) { pintarPerfil(zona, f); })
-      ['catch'](function (e) { zona.appendChild(C.errorCaja(e)); });
+    /* 30/09 · la foto no espera a la firma: se pinta ya y la firma llega detrás */
+    pintarPerfil(zona, null, O.leer('firma'));
     K.piezas.creditos.montar(c);
   }
 
-  function pintarPerfil(zona, f) {
+  function pintarPerfil(zona, f, pF) {
     zona.innerHTML = '';
     var yo = (C.yo && C.yo()) || {};
     /* la foto */
@@ -200,6 +204,15 @@
 
     /* la firma */
     var g = K.nodo('<section class="kit-tarjeta grupo pf-firma"><h3 class="grupo__t">Mi firma</h3></section>');
+    if (!f) {
+      var zF = K.nodo('<div></div>');
+      g.appendChild(zF);
+      zona.appendChild(g);
+      K.piezas.esqueletos.mientras(zF, pF, { forma: 'ficha', cuantos: 1, espera: 'Trayendo tu firma' })
+        .then(function (x) { if (zona.isConnected) pintarPerfil(zona, x); })
+        ['catch'](function (e) { zF.appendChild(C.errorCaja(e)); });
+      return;
+    }
     /* 25/09 · el REVISOR no firma: no se le dice que sus informes saldrían sin firma */
     if (!f.puede) {
       g.appendChild(K.nodo('<p class="formulario__nota">' + K.icono('info', 13) + ' Como revisor, lo que decides sale con la firma del supervisor del contrato. Aquí solo cambias tu foto.</p>'));
