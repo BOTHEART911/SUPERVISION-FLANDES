@@ -475,7 +475,7 @@
     K.piezas.creditos.montar(caja);
 
     if (accRev && window.REVISION) {
-      var carga = window.REVISION.cargar(false);
+      var carga = window.REVISION.cargar(false);   /* 29/09 · NO va de fondo: es la lista de trabajo (medido: de fondo llegaba 1,7 s después) */
       /* 10.5 · el mismo viaje trae los atrasados */
       if (dAtrasos && window.ATRASOS) {
         K.piezas.esqueletos.mientras(dAtrasos, carga, { forma: 'ficha', cuantos: 1, espera: 'Revisando plazos' })

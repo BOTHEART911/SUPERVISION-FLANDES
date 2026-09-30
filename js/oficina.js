@@ -11,10 +11,11 @@
 
   /* Lo que solo LEE se reintenta una vez si la redirección de Google llega
      vencida (5.3.1). Lo que escribe no se reintenta nunca. */
-  function leer(accion, datos, veces) {
-    return K.pedir(accion, datos || {}, { ms: 60000 })['catch'](function (e) {
+  function leer(accion, datos, veces, op) {
+    /* 29/09 · op.fondo: la carga va a la cola de fondo del kit (K.vista) */
+    return K.pedir(accion, datos || {}, { ms: 60000, fondo: !!(op && op.fondo) })['catch'](function (e) {
       var red = e && (e.codigo === 'RESPUESTA_NO_JSON' || e.codigo === 'SIN_RED' || e.codigo === 'TIEMPO');
-      if (red && (veces || 0) < 1) return leer(accion, datos, (veces || 0) + 1);
+      if (red && (veces || 0) < 1) return leer(accion, datos, (veces || 0) + 1, op);
       throw e;
     });
   }

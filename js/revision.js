@@ -93,19 +93,24 @@
   /* Lo que solo LEE se reintenta una vez si la redirección de Google llega
      vencida (el 404 de googleusercontent). Guardar y decidir NUNCA se
      reintentan: se duplicaría la decisión. */
-  function leer(accion, datos, veces) {
-    return K.pedir(accion, datos, { ms: 60000 })['catch'](function (e) {
+  function leer(accion, datos, veces, op) {
+    /* 29/09 · op.fondo: la carga va a la cola de fondo del kit (K.vista) */
+    return K.pedir(accion, datos, { ms: 60000, fondo: !!(op && op.fondo) })['catch'](function (e) {
       var red = e && (e.codigo === 'RESPUESTA_NO_JSON' || e.codigo === 'SIN_RED' || e.codigo === 'TIEMPO');
-      if (red && (veces || 0) < 1) return leer(accion, datos, (veces || 0) + 1);
+      if (red && (veces || 0) < 1) return leer(accion, datos, (veces || 0) + 1, op);
       throw e;
     });
   }
 
   var CARGANDO = null;
-  function cargar(fresco) {
+  function cargar(fresco, fondo) {
     if (LISTA && !fresco) return Promise.resolve(LISTA);
-    if (CARGANDO && !fresco) return CARGANDO;   /* el inicio y la vista a la vez: un solo viaje */
-    CARGANDO = leer('cuentas', { fresco: !!fresco }).then(function (d) { CARGANDO = null; recibir(d); return LISTA; },
+    if (CARGANDO && !fresco) {
+      /* 29/09 · la vista hereda lo que el inicio dejó en la cola de fondo */
+      if (!fondo && K.vista) K.vista.adoptar('cuentas');
+      return CARGANDO;
+    }   /* el inicio y la vista a la vez: un solo viaje */
+    CARGANDO = leer('cuentas', { fresco: !!fresco }, 0, { fondo: fondo }).then(function (d) { CARGANDO = null; recibir(d); return LISTA; },
       function (e) { CARGANDO = null; throw e; });
     return CARGANDO;
   }
@@ -414,9 +419,34 @@
       return CARPETA;
     }, function () { CARPETA = { carpeta: false, grupos: [], error: true }; if (D) repintarDocs(); return CARPETA; });
 
-    K.piezas.esqueletos.mientras(caja, p, { forma: 'texto', cuantos: 8 })
+    /* 29/09 · PRIMERO QUIÉN Y QUÉ CUENTA. Con la fila que ya está en la lista
+       se pinta YA la cabecera (foto, nombre, contrato, cuenta, estado): antes
+       era la única vista principal entera en esqueleto (~4,3 s). El resto
+       llega detrás y pintar() reemplaza todo con lo completo. */
+    var zona = cabeceraPrevia(caja, q) || caja;
+    K.piezas.esqueletos.mientras(zona, p, { forma: 'texto', cuantos: 8 })
       .then(function (d) { D = d; iniciarBitacora(); pintar(caja); if (CARPETA) precargar(); recibirHistorial(pH, d); })
-      ['catch'](function (e) { caja.appendChild(C.errorCaja(e, function () { C.app.innerHTML = ''; detalle(sub); })); });
+      ['catch'](function (e) { zona.appendChild(C.errorCaja(e, function () { C.app.innerHTML = ''; detalle(sub); })); });
+  }
+
+  function cabeceraPrevia(caja, q) {
+    var x = null;
+    try { x = cuentas().filter(function (c) { return c.fila === q.fila && Number(c.informe) === Number(q.informe); })[0] || null; } catch (e) { x = null; }
+    if (!x) return null;
+    var cab = K.nodo('<section class="kit-tarjeta ct-ficha__cab rv-cab"></section>');
+    if (K.piezas.personas) cab.appendChild(K.piezas.personas.avatar(x.nombre, { tam: 64, foto: x.img || '' }));
+    var tono = estadoTono(x.estado);
+    cab.appendChild(K.nodo(
+      '<div class="ct-ficha__quien">' +
+      '  <h2>' + K.esc(nombre(x.nombre)) + '</h2>' +
+      '  <p>CC/NIT ' + K.esc(x.doc || x.documento || '') + ' · Contrato ' + K.esc(x.contrato || '') + ' · <b>Cuenta ' + K.esc(x.informe) + ' de ' + K.esc(x.total || '—') + '</b></p>' +
+      '  <div class="ct-t__marcas"><span class="kit-pastilla' + (tono ? ' kit-pastilla--' + tono : '') + '" aria-pressed="true">' + K.esc(estadoTexto(x.estado) || 'SIN ESTADO') + '</span></div>' +
+      '  <p class="rv-cab__fechas">Radicada el <b>' + K.esc(x.radicada || '—') + '</b></p>' +
+      '</div>'));
+    caja.appendChild(cab);
+    var zona = K.nodo('<div class="rv-espera"></div>');
+    caja.appendChild(zona);
+    return zona;
   }
 
   /* ---------- 7.0 · el historial, por su lado ---------- */
