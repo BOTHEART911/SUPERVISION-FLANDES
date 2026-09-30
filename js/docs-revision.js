@@ -37,11 +37,19 @@
 
   var K = window.KIT;
 
-  var LOTE_BYTES = 4 * 1024 * 1024;     /* por viaje */
-  var LOTE_DOCS = 6;
-  var EN_VUELO = 2;                     /* viajes a la vez en segundo plano */
-  var TOPE_UNO = 12 * 1024 * 1024;      /* más grande que esto: solo al tocarlo */
-  var TOPE_PRECARGA = 40 * 1024 * 1024; /* memoria que se permite adelantar */
+  /* 30/09 · MÁS SUAVE CON EL SERVIDOR (medido en producción).
+     Cada paquete es una ejecución pesada de Apps Script (bajar de Drive y
+     mandar varios MB): 2 a 14 s. Todos los usuarios comparten la misma fila
+     de Google (8 viajes a la vez tardan hasta 33 s) y cortar el fetch no
+     detiene la ejecución. Con 2 paquetes de 4 MB a la vez y hasta 40 MB por
+     cuenta, un revisor ocupaba la fila de todos, y el documento que TOCABA
+     esperaba detrás de su propia precarga. Ahora: un paquete a la vez, más
+     pequeño, y solo hasta 10 MB por adelantado; lo que se toca sale ya. */
+  var LOTE_BYTES = 2.5 * 1024 * 1024;   /* por viaje */
+  var LOTE_DOCS = 4;
+  var EN_VUELO = 1;                     /* viajes a la vez en segundo plano */
+  var TOPE_UNO = 8 * 1024 * 1024;       /* más grande que esto: solo al tocarlo */
+  var TOPE_PRECARGA = 10 * 1024 * 1024; /* memoria que se permite adelantar */
 
   var S = null;   /* la cuenta abierta */
   var GEN = 0;
