@@ -51,6 +51,17 @@
   var TOPE_UNO = 8 * 1024 * 1024;       /* más grande que esto: solo al tocarlo */
   var TOPE_PRECARGA = 10 * 1024 * 1024; /* memoria que se permite adelantar */
 
+  /* 30/09 (noche) · TRAZA REAL, cuenta 1149: un paquete de fondo se quedó
+     colgado en la fila de Google y el kit lo esperó 90 s. El documento que
+     la persona tocó iba DENTRO de ese paquete, así que esperó con él: 67 s
+     para ver "Formato de Actividades". Ahora:
+       · el fondo se corta a los 30 s (los paquetes sanos tardan 7-15 s);
+       · si lo tocado viaja en un paquete de fondo que lleva más de 3 s sin
+         llegar, se pide SOLO, ya, en paralelo; gana el que llegue primero. */
+  var MS_FONDO = 30000;
+  var MS_TOCADO = 60000;
+  var ESPERA_FONDO = 3000;
+
   var S = null;   /* la cuenta abierta */
   var GEN = 0;
   /* 29/09 · la cuenta que se acaba de cerrar: si la persona vuelve a entrar a
@@ -102,44 +113,55 @@
     return S.cache[id];
   }
 
-  function fallo(id, e) {
+  /* Un viaje que no trajo el documento. Si todavía hay otro viaje en curso
+     que lo puede traer (el de fondo o el pedido al tocar), se le espera. */
+  function fallo(id, e, urgente) {
     var c = S.cache[id];
-    if (!c) return;
+    if (!c || c.listo) return;
+    if (urgente) c.urgente = false; else c.fondo = false;
+    if (!urgente && c.urgente) return;
     delete S.cache[id];            /* se puede volver a pedir */
+    if (c.timer) clearTimeout(c.timer);
     c.rej(e);
   }
 
-  function enviar(ids) {
+  function enviar(ids, urgente) {
     var st = S;
     if (!st || !ids.length) return;
     st.enVuelo++;
-    ids.forEach(function (id) { entrada(id).enviado = true; });
     var t0 = Date.now();
-    K.pedir('revisionPaquete', { docs: ids.map(function (id) { return { id: id, t: st.boletos[id].t }; }) }, { ms: 90000, senal: st.ctrl ? st.ctrl.signal : null })
+    ids.forEach(function (id) {
+      var c = entrada(id);
+      c.enviado = true;
+      if (urgente) c.urgente = true; else { c.fondo = true; c.t = t0; }
+    });
+    K.pedir('revisionPaquete', { docs: ids.map(function (id) { return { id: id, t: st.boletos[id].t }; }) },
+      { ms: urgente ? MS_TOCADO : MS_FONDO, senal: st.ctrl ? st.ctrl.signal : null })
       .then(function (r) {
         if (st !== S) return;
         var vistos = {}, bytes = 0;
         (r && r.docs || []).forEach(function (d) {
           vistos[d.id] = true;
           var c = st.cache[d.id];
-          if (!c) return;
+          if (!c || c.listo) return;     /* ya llegó por el otro viaje */
           if (typeof d.l1 === 'string') {
             var b = aBytes(d.l1);
             bytes += b.length;
             c.listo = true;
+            if (c.timer) clearTimeout(c.timer);
             c.res({ nombre: st.boletos[d.id].nombre || 'documento', mime: d.mime, tipo: d.tipo, bytes: b });
-          } else if (d.luego) {
-            c.enviado = false;
-            st.cola.unshift(d.id);   /* no cupo: va en el próximo viaje */
+          } else if (d.luego && !urgente) {
+            c.enviado = false; c.fondo = false;
+            if (!c.urgente) st.cola.unshift(d.id);   /* no cupo: va en el próximo viaje */
           } else {
-            fallo(d.id, new Error(d.error || 'No se pudo traer el documento.'));
+            fallo(d.id, new Error(d.error || 'No se pudo traer el documento.'), urgente);
           }
         });
-        ids.forEach(function (id) { if (!vistos[id]) fallo(id, new Error('El documento no llegó.')); });
+        ids.forEach(function (id) { if (!vistos[id]) fallo(id, new Error('El documento no llegó.'), urgente); });
         st.medidas.push({ docs: ids.length, kb: Math.round(bytes / 1024), ms: Date.now() - t0 });
       }, function (e) {
         if (st !== S) return;
-        ids.forEach(function (id) { fallo(id, e); });
+        ids.forEach(function (id) { fallo(id, e, urgente); });
         st.medidas.push({ docs: ids.length, kb: 0, ms: Date.now() - t0, error: (e && e.message) || 'red' });
       })
       .then(function () {
@@ -197,10 +219,20 @@
   function pedir(id) {
     if (!hay(id)) return null;
     var c = S.cache[id];
-    if (c && (c.enviado || c.listo)) return c.p;
+    if (c && (c.listo || c.urgente)) return c.p;
+    if (c && c.fondo) {
+      /* va en un paquete de fondo: se le dan 3 s desde que salió; si no ha
+         llegado, se pide solo. Un paquete colgado ya no frena lo tocado. */
+      var st = S, falta = Math.max(0, ESPERA_FONDO - (Date.now() - (c.t || 0)));
+      if (!c.timer) c.timer = setTimeout(function () {
+        c.timer = null;
+        if (st === S && S.cache[id] === c && !c.listo && !c.urgente) enviar([id], true);
+      }, falta);
+      return c.p;
+    }
     var i = S.cola.indexOf(id);
     if (i >= 0) S.cola.splice(i, 1);
-    enviar([id]);            /* se pide ya, aunque haya otros dos viajes en curso */
+    enviar([id], true);      /* se pide ya, aunque haya un viaje de fondo en curso */
     return S.cache[id].p;
   }
 
