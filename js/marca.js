@@ -34,7 +34,7 @@
        CUENTA baje los documentos directo de Drive, sin la fila de Apps
        Script. Es pública por diseño: Google solo la acepta desde
        botheart911.github.io y solo para Drive. Vacía = camino de siempre. */
-    DRIVE_LLAVE: '',
+    DRIVE_LLAVE: 'AIzaSyCPHE_OIcWjvU7f85CUg_-nOUZ6mqmDQhc',
 
     /* Las 7 apps viven en el mismo origen de GitHub Pages y comparten
        localStorage: sin este prefijo, la sesión de una pisa la de otra. */
