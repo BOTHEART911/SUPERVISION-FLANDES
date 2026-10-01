@@ -62,6 +62,20 @@
   var MS_TOCADO = 60000;
   var ESPERA_FONDO = 3000;
 
+  /* 30/09 (noche) · DIRECTO DE DRIVE. Medido en revisión real: abrir un
+     documento no precargado tomó 22,4 s, de los cuales el CORE trabajó
+     0,49 s; el resto fue la fila de Apps Script. Con la llave de Google
+     (MARCA.DRIVE_LLAVE, limitada a botheart911.github.io y a la API de
+     Drive) el teléfono le pide los bytes a Drive sin pasar por Apps Script.
+     Se ven en el MISMO visor, en memoria: no se descarga nada al equipo.
+     Si no hay llave, o Drive no lo entrega (archivo no compartido por
+     enlace, cuota), ese documento sigue por el camino de siempre. */
+  var LLAVE = String((window.MARCA && window.MARCA.DRIVE_LLAVE) || '').trim();
+  var DIRECTO_A_LA_VEZ = 3;
+  var DIRECTO_MS = 15000;
+  var DRIVE = 'https://www.googleapis.com/drive/v3/files/';
+  var MIME_DOC = 'application/vnd.google-apps.document';
+
   var S = null;   /* la cuenta abierta */
   var GEN = 0;
   /* 29/09 · la cuenta que se acaba de cerrar: si la persona vuelve a entrar a
@@ -107,6 +121,53 @@
   }
 
   function hay(id) { return !!(S && S.boletos[id]); }
+
+  function directoSi(id) { return !!(LLAVE && S && S.boletos[id] && !S.boletos[id].sinDirecto); }
+
+  function tipoDe(mime) { return /^image\//.test(mime) ? 'imagen' : (mime === 'application/pdf' ? 'pdf' : 'otro'); }
+
+  /** Un documento directo de Drive. Si falla, vuelve al camino del CORE. */
+  function enviarDirecto(id, urgente) {
+    var st = S, b = st.boletos[id], c = entrada(id), t0 = Date.now();
+    c.enviado = true; c.directo = true;
+    if (urgente) c.urgenteD = true;
+    st.enVueloD = (st.enVueloD || 0) + 1;
+    var g = b.mime === MIME_DOC;
+    var url = DRIVE + encodeURIComponent(id) +
+      (g ? '/export?mimeType=application%2Fpdf&' : '?alt=media&supportsAllDrives=true&') + 'key=' + encodeURIComponent(LLAVE);
+    var ctrl = (typeof AbortController === 'function') ? new AbortController() : null;
+    var corte = setTimeout(function () { if (ctrl) ctrl.abort(); }, DIRECTO_MS);
+    if (ctrl && st.ctrl) st.ctrl.signal.addEventListener('abort', function () { ctrl.abort(); });
+    fetch(url, { signal: ctrl ? ctrl.signal : undefined, credentials: 'omit' })
+      .then(function (r) {
+        if (!r.ok) throw new Error('Drive ' + r.status);
+        var mime = g ? 'application/pdf' : String(r.headers.get('content-type') || b.mime || '').split(';')[0].trim();
+        return r.arrayBuffer().then(function (ab) { return { mime: mime, bytes: new Uint8Array(ab) }; });
+      })
+      .then(function (x) {
+        clearTimeout(corte);
+        if (st !== S) return;
+        st.medidas.push({ docs: 1, kb: Math.round(x.bytes.length / 1024), ms: Date.now() - t0, directo: true });
+        if (c.listo) return;
+        c.listo = true;
+        if (c.timer) clearTimeout(c.timer);
+        c.res({ nombre: b.nombre || 'documento', mime: x.mime, tipo: tipoDe(x.mime), bytes: x.bytes });
+      }, function (e) {
+        clearTimeout(corte);
+        if (st !== S) return;
+        st.medidas.push({ docs: 1, kb: 0, ms: Date.now() - t0, directo: true, error: (e && e.message) || 'red' });
+        b.sinDirecto = true;           /* este ya no se intenta directo */
+        if (c.listo) return;
+        c.enviado = false; c.directo = false;
+        if (urgente || c.urgenteD) enviar([id], true);
+        else st.cola.unshift(id);
+      })
+      .then(function () {
+        if (st !== S) return;
+        st.enVueloD--;
+        bombear();
+      });
+  }
 
   function entrada(id) {
     if (!S.cache[id]) S.cache[id] = diferido();
@@ -171,22 +232,31 @@
       });
   }
 
-  /** Arma el siguiente paquete de la cola: hasta 6 documentos o 4 MB. */
+  /** Lo de la cola: directo de Drive (3 a la vez) si hay llave; lo demás en
+      paquetes del CORE de hasta 4 documentos o 2,5 MB, uno a la vez. */
   function bombear() {
     if (!S) return;
-    while (S.enVuelo < EN_VUELO && S.cola.length) {
-      var lote = [], peso = 0;
-      while (S.cola.length && lote.length < LOTE_DOCS) {
-        var id = S.cola[0];
-        var c = S.cache[id];
-        if (c && c.enviado) { S.cola.shift(); continue; }
+    S.cola = S.cola.filter(function (id) { var c = S.cache[id]; return !(c && c.enviado); });
+    if (LLAVE) {
+      var resto = [];
+      S.cola.forEach(function (id) {
+        if (directoSi(id) && (S.enVueloD || 0) < DIRECTO_A_LA_VEZ) enviarDirecto(id, false);
+        else resto.push(id);
+      });
+      S.cola = resto;
+    }
+    while (S.enVuelo < EN_VUELO) {
+      var lote = [], peso = 0, quedan = [];
+      for (var i = 0; i < S.cola.length; i++) {
+        var id = S.cola[i];
+        if (directoSi(id) || lote.length >= LOTE_DOCS) { quedan.push(id); continue; }
         var b = S.boletos[id] ? (S.boletos[id].bytes || 400 * 1024) : 0;
-        if (lote.length && peso + b > LOTE_BYTES) break;
-        S.cola.shift();
+        if (lote.length && peso + b > LOTE_BYTES) { quedan.push(id); continue; }
         lote.push(id);
         peso += b;
       }
       if (!lote.length) break;
+      S.cola = quedan;
       enviar(lote);
     }
   }
@@ -220,6 +290,7 @@
     if (!hay(id)) return null;
     var c = S.cache[id];
     if (c && (c.listo || c.urgente)) return c.p;
+    if (c && c.directo) { c.urgenteD = true; return c.p; }   /* ya va directo; si falla, sale solo por el CORE */
     if (c && c.fondo) {
       /* va en un paquete de fondo: se le dan 3 s desde que salió; si no ha
          llegado, se pide solo. Un paquete colgado ya no frena lo tocado. */
@@ -232,6 +303,7 @@
     }
     var i = S.cola.indexOf(id);
     if (i >= 0) S.cola.splice(i, 1);
+    if (directoSi(id)) { enviarDirecto(id, true); return S.cache[id].p; }
     enviar([id], true);      /* se pide ya, aunque haya un viaje de fondo en curso */
     return S.cache[id].p;
   }
@@ -256,6 +328,7 @@
     recibir: recibir, precargar: precargar, adelantar: adelantar, pedir: pedir, listo: listo, hay: hay,
     olvidar: olvidar,
     medidas: function () { return S ? S.medidas.slice() : []; },
+    directo: function () { return !!LLAVE; },
     _aBytes: aBytes
   };
 }());
