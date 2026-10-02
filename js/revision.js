@@ -1711,11 +1711,17 @@
 
   /* 6.2 · ACTA DE CUMPLIMIENTO: primero se trae el balance para confirmarlo, luego se firma */
   function firmarActa() {
+    /* 02/10 · un segundo toque mientras se calcula el balance (1-3 s sin nada en
+       pantalla) abría otra confirmación y podía firmar dos veces: ahora se ignora
+       y el escudo del kit tapa la pantalla hasta que sale la confirmación. */
+    if (K.ocupado) return;
     var cu = D.cuenta;
     var q = { fila: cu.fila, id: cu.idContrato, informe: cu.informe };
     K.ocupado = true;
+    var soltar = (K.piezas.antidoble && K.piezas.antidoble.escudo) ? K.piezas.antidoble.escudo() : function () {};
     K.aviso('Calculando el balance del contrato…', 'info', 2500);
     leer('actaPrevia', q).then(function (p) {
+      soltar();
       K.ocupado = false;
       var lista = [
         ['Contratista', nombre(cu.nombre)],
@@ -1734,6 +1740,7 @@
         lista: lista, nota: nota, si: 'Firmar', no: 'Cancelar'
       });
     }, function (e) {
+      soltar();
       K.ocupado = false;
       K.aviso((e && e.message) || 'No se pudo calcular el balance del acta.', 'malo', 9000);
       return false;
@@ -1759,6 +1766,7 @@
   }
 
   function firmarInforme() {
+    if (K.ocupado) return;   /* 02/10 · mismo candado que el acta: un firmado a la vez */
     var cu = D.cuenta;
     K.piezas.confirmar.abrir({
       titulo: cu.informeSup ? '¿Volver a firmar el informe?' : 'Firmar el informe de supervisión',
