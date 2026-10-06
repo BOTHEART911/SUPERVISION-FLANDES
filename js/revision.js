@@ -871,7 +871,11 @@
   function precargar() {
     if (!window.DOCS_REV || !D || !CARPETA) return;
     /* 05/10 noche · los PDF de evidencia se adelantan DIRECTO de Drive (sin Apps Script) */
-    if (K.drive && K.drive.precargar) archivosObl().forEach(function (a) { if (String(a.ext).toLowerCase() === 'pdf') K.drive.precargar(a.id); });
+    archivosObl().forEach(function (a) {
+      var e = String(a.ext || '').toLowerCase();
+      if (K.drive && K.drive.precargar && e !== 'doc') K.drive.precargar(a.id);
+      if (e !== 'pdf' && K.piezas.visor && K.piezas.visor.precalentarOficina) K.piezas.visor.precalentarOficina(e);
+    });
     var orden = [B && B.posicion ? B.posicion.seccion : 'contrato'].concat(SEC.map(function (x) { return x.k; }));
     var ids = [], visto = {};
     orden.forEach(function (k) {
@@ -891,11 +895,11 @@
     lista.forEach(function (a, j) { if (a.n === n) i = j; });
     if (!K.piezas.visor) return;
     /* 05/10 noche · directo de Drive: PDF por la llave (adelantado), Word y
-       Excel con el visor de Google. Nunca pasa por Apps Script. */
+       Excel pintados en el teléfono. Nunca pasa por Apps Script. */
     K.piezas.visor.abrir(lista.map(function (a) {
       var url = a.url || ('https://drive.google.com/file/d/' + a.id + '/view');
-      var x = { titulo: 'Obligación ' + a.n + ' · ' + a.nombre, url: url };
-      if (String(a.ext).toLowerCase() === 'pdf') x.tipo = 'pdf'; else x.marco = true;
+      var x = { titulo: 'Obligación ' + a.n + ' · ' + a.nombre, url: url, ext: String(a.ext || '').toLowerCase() };
+      if (x.ext === 'pdf') x.tipo = 'pdf';   /* Word y Excel: los pinta el visor en el teléfono */
       return x;
     }), { indice: i });
   }
