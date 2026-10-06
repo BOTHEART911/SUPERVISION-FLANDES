@@ -132,7 +132,7 @@
 
     cuenta: function () {
       return {
-        guia: 'Revisa por pestañas: **Contrato**, **Pago**, **Planilla** y **Actividades**. Cada documento se abre en el visor y cada evidencia en el carrusel con zoom. ' +
+        guia: 'Revisa por pestañas: **Contrato**, **Pago**, **Planilla** y **Actividades**. Cada documento se abre en el visor y cada evidencia en el carrusel con zoom. En **Actividades**, cada obligación trae sus imágenes y, si el contratista lo adjuntó, su **archivo de evidencia** (PDF, Word o Excel) con el nombre que le puso: tócalo y se abre en el visor, aunque esté minimizado. ' +
               'Marca con ✓ lo revisado. En cada obligación y documento tienes dos cajas: **Nota interna** (solo el equipo) y **Para el contratista**. **Guardar revisión** no cambia el estado. ' +
               'Al **devolver** o marcar **incompleta**, el motivo sale ya escrito con las observaciones para el contratista, en orden; se edita y se confirma. Las notas internas nunca le llegan. ' +
               (soyRevisor() ? 'Cuando termines, deja tu **Visto bueno** o marca **Con inconsistencia**: queda en la tarjeta con tu nombre, fecha y hora. ' : '') +

@@ -2679,3 +2679,16 @@
 /* 29/09 · botón DRIVE en la cabecera del detalle de cuenta: a la derecha de
    nombre / CC / contrato / estado; en el teléfono baja solo debajo. */
 .rv-cab__drive { flex: 0 0 auto; align-self: flex-start; }
+
+/* 05/10 · archivo de evidencia de la obligación */
+.rv-arch { margin-top: 12px; }
+.rv-arch__b {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  border: 1.5px solid rgba(var(--k-marca-rgb), .35);
+  background: rgba(var(--k-marca-rgb), .06);
+}
+.rv-arch__b:hover, .rv-arch__b:focus-visible { border-color: var(--k-marca); background: rgba(var(--k-marca-rgb), .1); }
+.rv-arch__b b { overflow-wrap: anywhere; }

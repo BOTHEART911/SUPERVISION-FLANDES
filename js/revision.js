@@ -834,8 +834,16 @@
   }
 
   /** Todos los documentos: los de las columnas de la cuenta + los de la carpeta. */
+  /* 05/10 · los archivos de evidencia por obligación (vienen en el detalle) */
+  function archivosObl() {
+    return ((D && D.obligaciones) || []).filter(function (o) { return o.archivo && o.archivo.id; })
+      .map(function (o) { var a = o.archivo; a.n = o.n; return a; });
+  }
+
   function todosLosDocs() {
     var vistos = {}, out = [];
+    /* se ven dentro de su obligación, no en la lista de documentos */
+    archivosObl().forEach(function (a) { vistos[a.id] = true; });
     (D.archivos || []).forEach(function (a) {
       if (vistos[a.id]) return;
       vistos[a.id] = true;
@@ -862,14 +870,29 @@
      pestaña donde está la persona y siguiendo el orden de las pestañas. */
   function precargar() {
     if (!window.DOCS_REV || !D || !CARPETA) return;
+    if (window.DOCS_REV.sumar) window.DOCS_REV.sumar(archivosObl());   /* 05/10 · boleto propio, siempre por el CORE */
     var orden = [B && B.posicion ? B.posicion.seccion : 'contrato'].concat(SEC.map(function (x) { return x.k; }));
     var ids = [], visto = {};
     orden.forEach(function (k) {
       if (visto[k]) return;
       visto[k] = true;
+      if (k === 'actividades') archivosObl().forEach(function (a) { ids.push(a.id); });   /* 05/10 */
       docsDe(k).forEach(function (d) { ids.push(d.id); });
     });
     window.DOCS_REV.precargar(ids);
+  }
+
+  /* 05/10 · el visor recibe los archivos de TODAS las obligaciones y se abre
+     en el tocado: si ya estaba abierto o minimizado, se restaura y cambia de
+     documento sin moverse. Precargados, abren sin esperar al servidor. */
+  function abrirArchivoObl(n) {
+    var lista = archivosObl();
+    var i = 0;
+    lista.forEach(function (a, j) { if (a.n === n) i = j; });
+    if (window.DOCS_REV && window.DOCS_REV.sumar) window.DOCS_REV.sumar(lista);
+    abrirVisor(lista.map(function (a) {
+      return { id: a.id, titulo: 'Obligación ' + a.n + ' · ' + a.nombre, tipo: 'pdf' };
+    }), i);
   }
 
   function abrirVisor(lista, i) {
@@ -1141,6 +1164,22 @@
     });
     if (ev.length) tira.appendChild(fotos);
     t.appendChild(tira);
+
+    /* 05/10 · ARCHIVO DE EVIDENCIA DEL CUMPLIMIENTO (uno por obligación) */
+    if (o.archivo && o.archivo.id) {
+      var ar = o.archivo, ext = String(ar.ext || '').toLowerCase();
+      var ico = ext === 'pdf' ? 'pdf' : (ext === 'xls' || ext === 'xlsx') ? 'hoja' : 'documento';
+      var queEs = ext === 'pdf' ? 'PDF' : (ext === 'xls' || ext === 'xlsx') ? 'Excel' : 'Word';
+      var fa = K.nodo('<div class="rv-arch"><p class="rv-obl__et">Archivo de evidencia</p>' +
+        '<button type="button" class="ins-doc rv-arch__b" aria-label="Ver el archivo de evidencia de la obligación ' + o.n + '">' +
+        '<span class="ins-doc__ico">' + K.icono(ico, 20) + '</span>' +
+        '<span class="ins-doc__txt"><b>' + K.esc(ar.nombre) + '</b><small>' + queEs + ' · toca para verlo</small></span></button></div>');
+      fa.querySelector('button').addEventListener('click', function () {
+        B.posicion.obligacion = o.n;
+        abrirArchivoObl(o.n);
+      });
+      t.appendChild(fa);
+    }
 
     var notas = notasDe('obligacion', o.n);
     if (notas.length) t.appendChild(listaNotas(notas, true));

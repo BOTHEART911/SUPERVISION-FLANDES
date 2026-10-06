@@ -115,12 +115,28 @@
     });
     (r.grupos || []).forEach(function (g) {
       (g.archivos || []).forEach(function (a) {
-        if (a.t && !S.boletos[a.id]) S.boletos[a.id] = { t: a.t, bytes: a.bytes || 0, mime: a.mime || '', nombre: a.nombre || '' };
+        if (a.t && !S.boletos[a.id]) S.boletos[a.id] = { t: a.t, bytes: a.bytes || 0, mime: a.mime || '', nombre: a.nombre || '', sinDirecto: !!a.privado };
       });
     });
   }
 
   function hay(id) { return !!(S && S.boletos[id]); }
+
+  /* 05/10 · un Word o Excel de evidencia llega convertido a PDF: se descarga como .pdf */
+  function nombrePara(nombre, mime) {
+    if (mime === 'application/pdf' && /\.(docx?|xlsx?)$/i.test(nombre)) return nombre.replace(/\.(docx?|xlsx?)$/i, '.pdf');
+    return nombre;
+  }
+
+  /* 05/10 · los archivos de evidencia por obligación llegan con el detalle
+     (boleto propio). Son privados: van siempre por el CORE, nunca directo. */
+  function sumar(lista) {
+    if (!S) return;
+    (lista || []).forEach(function (a) {
+      if (a && a.id && a.t && !S.boletos[a.id]) S.boletos[a.id] = { t: a.t, bytes: 0, mime: '', nombre: a.nombre || '', sinDirecto: true };
+      else if (a && a.id && S.boletos[a.id]) S.boletos[a.id].sinDirecto = true;
+    });
+  }
 
   function directoSi(id) { return !!(LLAVE && S && S.boletos[id] && !S.boletos[id].sinDirecto); }
 
@@ -210,7 +226,7 @@
             bytes += b.length;
             c.listo = true;
             if (c.timer) clearTimeout(c.timer);
-            c.res({ nombre: st.boletos[d.id].nombre || 'documento', mime: d.mime, tipo: d.tipo, bytes: b });
+            c.res({ nombre: nombrePara(st.boletos[d.id].nombre || 'documento', d.mime), mime: d.mime, tipo: d.tipo, bytes: b });
           } else if (d.luego && !urgente) {
             c.enviado = false; c.fondo = false;
             if (!c.urgente) st.cola.unshift(d.id);   /* no cupo: va en el próximo viaje */
@@ -325,7 +341,7 @@
   }
 
   window.DOCS_REV = {
-    recibir: recibir, precargar: precargar, adelantar: adelantar, pedir: pedir, listo: listo, hay: hay,
+    recibir: recibir, precargar: precargar, adelantar: adelantar, pedir: pedir, listo: listo, hay: hay, sumar: sumar,
     olvidar: olvidar,
     medidas: function () { return S ? S.medidas.slice() : []; },
     directo: function () { return !!LLAVE; },
