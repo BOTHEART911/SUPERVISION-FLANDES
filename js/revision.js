@@ -898,7 +898,11 @@
        Excel pintados en el teléfono. Nunca pasa por Apps Script. */
     K.piezas.visor.abrir(lista.map(function (a) {
       var url = a.url || ('https://drive.google.com/file/d/' + a.id + '/view');
-      var x = { titulo: 'Obligación ' + a.n + ' · ' + a.nombre, url: url, ext: String(a.ext || '').toLowerCase() };
+      var cu = D.cuenta;
+      var x = { titulo: 'Obligación ' + a.n + ' · ' + a.nombre, ext: String(a.ext || '').toLowerCase(), enlace: url,
+        drive: { id: a.id, nombre: a.nombre },
+        /* si Drive no lo entrega directo, lo trae el CORE (nunca el visor de Google embebido) */
+        cargar: function () { return leer('revisionDocumento', { fila: cu.fila, id: cu.idContrato, informe: cu.informe, archivo: a.id }); } };
       if (x.ext === 'pdf') x.tipo = 'pdf';   /* Word y Excel: los pinta el visor en el teléfono */
       return x;
     }), { indice: i });
