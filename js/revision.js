@@ -870,13 +870,13 @@
      pestaña donde está la persona y siguiendo el orden de las pestañas. */
   function precargar() {
     if (!window.DOCS_REV || !D || !CARPETA) return;
-    if (window.DOCS_REV.sumar) window.DOCS_REV.sumar(archivosObl());   /* 05/10 · boleto propio, siempre por el CORE */
+    /* 05/10 noche · los PDF de evidencia se adelantan DIRECTO de Drive (sin Apps Script) */
+    if (K.drive && K.drive.precargar) archivosObl().forEach(function (a) { if (String(a.ext).toLowerCase() === 'pdf') K.drive.precargar(a.id); });
     var orden = [B && B.posicion ? B.posicion.seccion : 'contrato'].concat(SEC.map(function (x) { return x.k; }));
     var ids = [], visto = {};
     orden.forEach(function (k) {
       if (visto[k]) return;
       visto[k] = true;
-      if (k === 'actividades') archivosObl().forEach(function (a) { ids.push(a.id); });   /* 05/10 */
       docsDe(k).forEach(function (d) { ids.push(d.id); });
     });
     window.DOCS_REV.precargar(ids);
@@ -889,10 +889,15 @@
     var lista = archivosObl();
     var i = 0;
     lista.forEach(function (a, j) { if (a.n === n) i = j; });
-    if (window.DOCS_REV && window.DOCS_REV.sumar) window.DOCS_REV.sumar(lista);
-    abrirVisor(lista.map(function (a) {
-      return { id: a.id, titulo: 'Obligación ' + a.n + ' · ' + a.nombre, tipo: 'pdf' };
-    }), i);
+    if (!K.piezas.visor) return;
+    /* 05/10 noche · directo de Drive: PDF por la llave (adelantado), Word y
+       Excel con el visor de Google. Nunca pasa por Apps Script. */
+    K.piezas.visor.abrir(lista.map(function (a) {
+      var url = a.url || ('https://drive.google.com/file/d/' + a.id + '/view');
+      var x = { titulo: 'Obligación ' + a.n + ' · ' + a.nombre, url: url };
+      if (String(a.ext).toLowerCase() === 'pdf') x.tipo = 'pdf'; else x.marco = true;
+      return x;
+    }), { indice: i });
   }
 
   function abrirVisor(lista, i) {
