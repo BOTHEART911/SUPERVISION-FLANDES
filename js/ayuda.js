@@ -483,7 +483,26 @@
     };
   };
 
-  var TITULOS = { inicio: 'Tu inicio', atrasos: 'Cuentas atrasadas', revisar: 'Cuentas de mi supervisión', cuenta: 'Revisión de cuenta', comunicaciones: 'Solicitud a Comunicaciones',
+  /* 06/10 · MIS REGISTROS: dónde descargar lo que hice */
+  function MRG() { return window.MISREGISTROS || null; }
+  GUIAS.misregistros = function () {
+    return {
+      guia: 'Aquí está **todo lo que has hecho** en la app (cuentas aprobadas, devueltas e incompletas, planes de pago aceptados, informes de supervisión y actas firmados, vistos buenos), con fecha y hora. Elige el **periodo**, filtra por **qué hiciste** y descárgalo en **PDF** (un bloque por registro) o en **Excel** (una fila por registro). El archivo baja con tu nombre y las fechas.',
+      botones: [
+        { texto: 'Resúmeme el periodo', responde: function () {
+            var r = MRG(); var f = r ? r._filtradas() : []; if (!r || !r._datos()) return 'Todavía está cargando.';
+            if (!f.length) return 'No hay registros en este periodo.';
+            var m = {}; f.forEach(function (x) { m[x.tipo] = (m[x.tipo] || 0) + 1; });
+            return '**' + f.length + '** registros:\n' + Object.keys(m).sort(function (a, b) { return m[b] - m[a]; }).map(function (k) { return '· **' + k + '**: ' + m[k]; }).join('\n');
+          } },
+        { texto: '¿Cómo lo descargo?', responde: function () {
+            return 'Elige el periodo arriba (o **Otro rango** con las fechas) y toca **Descargar PDF** o **Descargar Excel**. Baja solo lo que ves en la lista: si filtras por un tipo o buscas algo, el archivo sale igual.';
+          } }
+      ]
+    };
+  };
+
+  var TITULOS = { inicio: 'Tu inicio', misregistros: 'Mis registros', atrasos: 'Cuentas atrasadas', revisar: 'Cuentas de mi supervisión', cuenta: 'Revisión de cuenta', comunicaciones: 'Solicitud a Comunicaciones',
                   contratistas: 'Contratistas', contratista: 'Ficha del contratista', informe: 'Informe de cuentas',
                   firmados: 'Informes firmados', reporte: 'Reporte de Supervisión', requerimientos: 'Requerimientos',
                   comunicados: 'Comunicados', directorio: 'Directorio institucional', drive: 'Drive de Hacienda', perfil: 'Mi firma y mi foto' };

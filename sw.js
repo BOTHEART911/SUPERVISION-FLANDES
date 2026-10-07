@@ -54,6 +54,7 @@ var ARMAZON = [
   './js/comunicados.js',
   './js/firmados.js',
   './js/reporte.js',
+  './js/misregistros.js',
   './js/informe.js',
   './js/institucional.js',
   /* 10.5 · cuentas atrasadas */

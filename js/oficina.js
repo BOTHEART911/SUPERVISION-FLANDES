@@ -166,7 +166,7 @@
       if (!d || d.error || !d.l1) throw new Error((d && d.error) || 'No se pudo abrir el documento.');
       var b = new Uint8Array(d.l1.length);
       for (var i = 0; i < d.l1.length; i++) b[i] = d.l1.charCodeAt(i) & 255;
-      var out = { bytes: b, mime: d.mime || 'application/pdf', tipo: d.tipo || 'pdf', nombre: nombreDoc || 'documento.pdf' };
+      var out = { bytes: b, mime: d.mime || 'application/pdf', tipo: d.tipo || 'pdf', nombre: d.nombre || nombreDoc || 'documento.pdf' };
       DOCS[t] = out;
       return out;
     });

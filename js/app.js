@@ -212,6 +212,8 @@
     ['CONTRATISTAS', 'REQS', 'COMUS', 'FIRMADOS', 'REPORTE', 'INFORME', 'INSTITUCIONAL'].forEach(function (m) {
       if (window[m]) window[m].configurar(cOf);
     });
+    /* 06/10 · MIS REGISTROS: lo que hizo cada persona, para descargarlo */
+    if (window.MISREGISTROS) window.MISREGISTROS.configurar({ app: app, errorCaja: errorCaja, nombreApp: 'Supervision' });
 
     K.cuando('kit:foto', function (r) {
       YO.imagen = r.url || '';
@@ -235,6 +237,7 @@
    * abrir (llave PERMISOS de CONFIG). El CORE vuelve a comprobarlo en cada
    * llamada: esconder un botón no es la seguridad, es la cortesía. */
   function puede(vista) {
+    if (vista === '*') return true;   /* 06/10 · MIS REGISTROS: cada quien ve lo suyo (lo filtra el CORE) */
     var r = K.norm((YO && YO.rol) || '');
     if (r === 'DEV') return true;
     var v = (YO && YO.vistas) || [];
@@ -274,6 +277,7 @@
         /* 5.1.1 · soporte en TODAS las apps: se guarda en la hoja SOPORTE
            (la responde ADMIN) y avisa al grupo de desarrollo por WhatsApp */
         /* guías rápidas: el PDF de esta app (carpeta GUÍAS RÁPIDAS de Drive) */
+        { texto: 'Mis registros (descargar lo que hice)', al: function () { irA('misregistros'); } },
         { texto: 'Descargar guía rápida', al: function () { if (K.piezas.guia) K.piezas.guia.descargar('SUPERVISION'); } },
         { texto: 'Soporte', al: function () { if (K.piezas.soporte) K.piezas.soporte.abrir({ vista: vistaActual() }); } },
         { texto: 'Cerrar sesión', al: salir, peligro: true }
@@ -308,6 +312,7 @@
       if (window[m] && window[m].olvidar) window[m].olvidar();
     });
     if (window.OFICINA && window.OFICINA.olvidarDocs) window.OFICINA.olvidarDocs();
+    if (window.MISREGISTROS) window.MISREGISTROS.olvidar();
     K.piezas.sesion.salir();
     location.hash = '';
   }
@@ -327,6 +332,7 @@
     informe: function (sub) { window.INFORME.vista(sub); },
     firmados: function () { window.FIRMADOS.vista(); },
     reporte: function () { window.REPORTE.vista(); },
+    misregistros: function () { window.MISREGISTROS.vista(); },   /* 06/10 */
     requerimientos: function () { window.REQS.vista(); },
     comunicados: function () { window.COMUS.vista(); },
     directorio: function () { window.INSTITUCIONAL.directorio(); },
@@ -345,6 +351,7 @@
     informe: 'INFORME DE CUENTAS',
     firmados: 'INFORMES FIRMADOS',
     reporte: 'REPORTE',
+    misregistros: 'MIS REGISTROS',
     requerimientos: 'REQUERIMIENTOS',
     comunicados: 'COMUNICADOS',
     directorio: 'DIRECTORIO',
@@ -357,7 +364,8 @@
   var PERMISO = { revisar: 'revisarCuentas', cuenta: 'revisarCuentas', atrasos: 'revisarCuentas', comunicaciones: 'solicitudComunicaciones',
                   contratistas: 'contratistas', contratista: 'contratistas', informe: 'descargarInforme',
                   firmados: 'supervisionFirmados', reporte: 'reportes', requerimientos: 'requerimientos',
-                  comunicados: 'comunicados', directorio: 'directorio', drive: 'driveHacienda', perfil: 'configuracion' };
+                  comunicados: 'comunicados', directorio: 'directorio', drive: 'driveHacienda', perfil: 'configuracion',
+                  misregistros: '*' };
 
   function irA(v) { location.hash = '#/' + v; }
   var DE_DONDE = 'inicio';   /* el informe vuelve a la vista de la que salió (reporte o contratistas) */
@@ -441,6 +449,9 @@
           'img/carpeta_drive.webp', function () { irA('firmados'); }));
         if (puede('reportes')) tCuentas.push(acceso('REPORTE', 'Todas las cuentas de tu supervisión, de la radicación al pago, en PDF o Excel',
           'img/pdf.webp', function () { irA('reporte'); }));
+        /* 06/10 · MIS REGISTROS: lo que hizo esta persona, para descargarlo */
+        tCuentas.push(accesoIcono('MIS REGISTROS', 'Lo que has hecho: cuentas aprobadas y devueltas, planes aceptados, informes y actas firmados, vistos buenos. En PDF o Excel',
+          'descargar', function () { irA('misregistros'); }));
         bloque('CUENTAS', tCuentas);
         /* 10.5 · los contratistas con la cuenta atrasada, con el botón de compartir */
         var sAt = K.nodo('<section class="bloque" aria-label="Cuentas atrasadas"><h3 class="bloque__t">CUENTAS ATRASADAS</h3></section>');
@@ -567,6 +578,21 @@
     caja.appendChild(cifras);
     caja.appendChild(K.nodo('<p class="ct-resumen__t sp-total">' + K.numero(n.total || 0) + ' cuentas en trámite en tu supervisión</p>'));
     destino.appendChild(caja);
+  }
+
+  /* 06/10 · acceso con ícono del kit (el mismo de CONTRATACION-FLANDES) */
+  function accesoIcono(titulo, texto, icono, al) {
+    var b = K.nodo(
+      '<button type="button" class="kit-tarjeta acceso">' +
+      '  <span class="acceso__img acceso__img--icono" aria-hidden="true">' + K.icono(icono, 40) + '</span>' +
+      '  <span class="acceso__txt">' +
+      '    <span class="acceso__t">' + K.esc(titulo) + '</span>' +
+      '    <span class="acceso__p">' + K.esc(texto) + '</span>' +
+      '  </span>' +
+      '</button>'
+    );
+    b.addEventListener('click', function () { K.vibrar(8); al(); });
+    return b;
   }
 
   function acceso(titulo, texto, medio, al, cuenta) {

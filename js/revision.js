@@ -1735,7 +1735,7 @@
       titulo: 'Informe de supervisión · cuenta ' + cu.informe,
       tipo: 'pdf',
       cargar: function () {
-        if (bytes && bytes.length) return Promise.resolve({ bytes: bytes, mime: 'application/pdf', tipo: 'pdf', nombre: 'Informe de supervisión.pdf' });
+        if (bytes && bytes.length) return Promise.resolve({ bytes: bytes, mime: 'application/pdf', tipo: 'pdf', nombre: cu._nomInforme || 'Informe de supervisión.pdf' });
         var R = window.DOCS_REV;
         var rapido = R ? R.pedir(id) : null;
         var viejo = function () { return leer('revisionDocumento', { fila: cu.fila, id: cu.idContrato, informe: cu.informe, archivo: id }); };
@@ -1752,7 +1752,7 @@
       titulo: 'Acta de cumplimiento · cuenta ' + cu.informe,
       tipo: 'pdf',
       cargar: function () {
-        if (bytes && bytes.length) return Promise.resolve({ bytes: bytes, mime: 'application/pdf', tipo: 'pdf', nombre: 'Acta de cumplimiento.pdf' });
+        if (bytes && bytes.length) return Promise.resolve({ bytes: bytes, mime: 'application/pdf', tipo: 'pdf', nombre: cu._nomActa || 'Acta de cumplimiento.pdf' });
         var R = window.DOCS_REV;
         var rapido = R ? R.pedir(id) : null;
         var viejo = function () { return leer('revisionDocumento', { fila: cu.fila, id: cu.idContrato, informe: cu.informe, archivo: id }); };
@@ -1806,6 +1806,7 @@
       }).then(function (r) {
         K.ocupado = false;
         cu.acta = r.id;
+        cu._nomActa = r.nombre || '';   /* 06/10 · al descargar, el nombre con que quedó en Drive */
         LISTA = null;
         repintarTodo();
         var bytes = r.l1 ? aBytes(r.l1) : null;
@@ -1840,6 +1841,7 @@
       }).then(function (r) {
         K.ocupado = false;
         cu.informeSup = r.id;
+        cu._nomInforme = r.nombre || '';   /* 06/10 · al descargar, el nombre con que quedó en Drive */
         LISTA = null;
         repintarTodo();
         var bytes = r.l1 ? aBytes(r.l1) : null;

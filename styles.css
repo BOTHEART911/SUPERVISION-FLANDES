@@ -2692,3 +2692,13 @@
 }
 .rv-arch__b:hover, .rv-arch__b:focus-visible { border-color: var(--k-marca); background: rgba(var(--k-marca-rgb), .1); }
 .rv-arch__b b { overflow-wrap: anywhere; }
+
+/* 06/10 · acceso con ícono (MIS REGISTROS), igual que en Contratación */
+.acceso__img--icono { display: inline-flex; align-items: center; justify-content: center; color: var(--k-marca); }
+.acceso__img--icono svg { width: 30px; height: 30px; }
+:root[data-tema="oscuro"] .acceso__img--icono { color: var(--k-marca-clara); }
+
+/* 06/10 · MIS REGISTROS: la etiqueta de lo que se hizo, a la derecha de cada fila */
+.rg-der { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex: 0 0 auto; }
+.mr .rp-fila__f { flex-basis: 62px; }
+.mr .rp-fila__f small { white-space: nowrap; }
