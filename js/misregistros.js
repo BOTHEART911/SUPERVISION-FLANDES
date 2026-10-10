@@ -151,7 +151,8 @@
     caja.appendChild(resumen);
     var descargas = K.nodo('<div class="rp-bajar">' +
       '<button type="button" class="kit-btn kit-btn--marca" data-f="pdf">' + K.icono('pdf', 16) + ' Descargar PDF</button>' +
-      '<button type="button" class="kit-btn kit-btn--plano" data-f="xlsx">' + K.icono('hoja', 16) + ' Descargar Excel</button></div>');
+      '<button type="button" class="kit-btn kit-btn--plano" data-f="xlsx">' + K.icono('hoja', 16) + ' Descargar Excel</button>' +
+      '<button type="button" class="kit-btn kit-btn--plano rp-gerencial" data-f="gerencial">' + K.icono('grafica', 16) + ' Informe gerencial</button></div>');
     caja.appendChild(descargas);
     var conteo = K.nodo('<p class="ct-conteo" aria-live="polite"></p>');
     caja.appendChild(conteo);
@@ -265,7 +266,7 @@
       pintarResumen(filas);
       conteo.innerHTML = '<b>' + K.numero(filas.length) + '</b> ' + (filas.length === 1 ? 'registro' : 'registros') +
         (HORA ? '<span class="ct-sello">' + K.icono('reloj', 13) + ' Al día a las ' + K.esc(O.horaCorta(HORA)) + '</span>' : '');
-      descargas.querySelectorAll('button').forEach(function (x) { x.disabled = !filas.length; });
+      descargas.querySelectorAll('button').forEach(function (x) { x.disabled = x.getAttribute('data-f') === 'gerencial' ? !delPeriodo().length : !filas.length; });
       pintarLista();
     }
 
@@ -325,7 +326,47 @@
     };
   }
 
+  /* ══════════════ 10/10 · INFORME GERENCIAL ══════════════
+     El PDF para la jefatura: portada, indicadores y gráficas de TODO lo que
+     la persona hizo en el periodo escogido (no aplica "Qué hice" ni la
+     búsqueda: es el panorama completo). Sale de las filas que ya están en
+     el teléfono: cero viajes. La pieza (kit/gerencial.js) se baja la
+     primera vez que se toca el botón. */
+  function delPeriodo() {
+    return (DATA || []).filter(function (x) { return x.fecha && (!F.desde || x.fecha >= F.desde) && (!F.hasta || x.fecha <= F.hasta); });
+  }
+  function specGerencial() {
+    var titulo = (window.MARCA && window.MARCA.TITULO) || C.nombreApp || '';
+    var persona = quien() || 'Sin nombre';
+    var rango = (F.desde ? O.fecha(F.desde).replace(/\//g, '-') : '') + (F.hasta && F.hasta !== F.desde ? ' a ' + O.fecha(F.hasta).replace(/\//g, '-') : '');
+    return {
+      app: titulo, persona: persona, desde: F.desde, hasta: F.hasta,
+      nombre: ['Informe gerencial', titulo, persona, rango].filter(Boolean).join(' '),
+      palabra: ['actuación', 'actuaciones'],
+      etiquetas: { tipo: 'Actuación', categoria: 'Secretaría', sujeto: 'Contratista', sujetos: 'contratistas' },
+      tonos: { ok: 'Aprobadas o firmadas', malo: 'Devueltas o con observaciones', info: 'Otras gestiones' },
+      registros: delPeriodo().map(function (x) {
+        return { fecha: x.fecha, hora: x.hora, tipo: x.tipo, tono: tono(x.tipo), categoria: O.titulo(x.sec) || '',
+                 sujeto: O.nombre(x.nombre) || '', ref: 'Contrato ' + (x.contrato || '—') + (x.informe ? ' · cuenta ' + x.informe : '') };
+      })
+    };
+  }
+  function gerencial(boton) {
+    var ex = K.piezas.exportar;
+    if (!ex || !ex.aGerencial) { K.aviso('El informe gerencial no está disponible en esta versión. Recarga la app.', 'aviso', 5000); return; }
+    var sp = specGerencial();
+    if (!sp.registros.length) { K.aviso('No hay actuaciones en ese periodo para armar el informe.', 'aviso', 4000); return; }
+    boton.disabled = true; boton.classList.add('kit-ocupado');
+    var t0 = Date.now();
+    ex.aGerencial(sp).then(function (r) {
+      MEDIDAS.push({ que: 'informe gerencial', ms: Date.now() - t0, carga: r.msCarga, dibujo: r.msDibujo, paginas: r.paginas, filas: r.total });
+      K.aviso('Informe gerencial descargado (' + r.paginas + ' páginas).', 'ok', 3500);
+    }, function (e) { K.aviso((e && e.message) || 'No se pudo armar el informe.', 'malo', 6000); })
+      .then(function () { boton.disabled = false; boton.classList.remove('kit-ocupado'); });
+  }
+
   function bajar(formato, boton) {
+    if (formato === 'gerencial') { gerencial(boton); return; }
     if (!K.piezas.exportar) { K.aviso('La descarga no está disponible en esta versión.', 'aviso'); return; }
     var filas = filtradas().slice().sort(function (a, c) {
       return String(a.tipo).localeCompare(String(c.tipo), 'es') || String(a.fecha + a.hora).localeCompare(String(c.fecha + c.hora));
@@ -354,6 +395,7 @@
     _meta: function () { return META; },
     _filtradas: filtradas,
     _informe: informe,
+    _gerencial: specGerencial,
     _filtro: function () { return F; },
     _medidas: function () { return MEDIDAS.slice(); }
   };

@@ -2710,3 +2710,6 @@
 .rh-hist > summary b { color: var(--k-tinta); }
 .rh-hist[open] > summary { margin-bottom: 8px; }
 .rh-fecha__n { margin: -4px 0 10px; }
+
+/* 10/10 · botón INFORME GERENCIAL (Mis registros): el ícono en dorado lo distingue de PDF y Excel */
+.rp-gerencial svg { color: #c99e2e; }
