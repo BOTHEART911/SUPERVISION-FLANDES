@@ -2702,3 +2702,11 @@
 .rg-der { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex: 0 0 auto; }
 .mr .rp-fila__f { flex-basis: 62px; }
 .mr .rp-fila__f small { white-space: nowrap; }
+
+/* 10/10 · rehacer documentos e historial de observaciones */
+.rv-cab__rehacer { flex: 0 0 auto; align-self: flex-start; }
+.rv-cab__rehacer--bloq { opacity: .55; }
+.rh-hist > summary { cursor: pointer; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; color: var(--k-malo); }
+.rh-hist > summary b { color: var(--k-tinta); }
+.rh-hist[open] > summary { margin-bottom: 8px; }
+.rh-fecha__n { margin: -4px 0 10px; }

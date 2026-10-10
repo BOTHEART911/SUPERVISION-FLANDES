@@ -44,6 +44,7 @@ var ARMAZON = [
   './js/marca.js',
   './js/app.js',
   './js/ayuda.js',
+  './js/rehacer.js',
   './js/revision.js',
   './js/docs-revision.js',
   './js/comunicaciones.js',

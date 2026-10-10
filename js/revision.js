@@ -400,7 +400,9 @@
 
   function borradorK() { return BORRADOR_K + D.cuenta.fila + '-' + D.cuenta.idContrato + '-' + D.cuenta.informe; }
 
+  var SUB_DET = null;   /* 10/10 · la cuenta abierta, para recargarla tras rehacer documentos */
   function detalle(sub) {
+    SUB_DET = sub;
     var q = llaveDe(sub);
     var caja = K.nodo('<div class="kit-ancho vista rv-det"></div>');
     C.app.appendChild(caja);
@@ -508,6 +510,12 @@
 
   /** Solo se repinta si la persona está en una pestaña que lo muestra. */
   function repintarHistorial() {
+    /* 10/10 · las devoluciones viejas llegan con el historial: el bloque de observaciones se completa */
+    if (window.REHACER && CAJA && D && PESTANAS) {
+      var vh = CAJA.querySelector('.rh-hist'), nh = window.REHACER.historial(D, nombre);
+      if (nh && vh) { nh.open = vh.open; vh.parentNode.replaceChild(nh, vh); }
+      else if (nh && PESTANAS.previousSibling) CAJA.insertBefore(nh, PESTANAS.previousSibling);
+    }
     if (!ZONA || !B) return;
     var k = B.posicion.seccion;
     if (k === 'bitacora') {
@@ -689,6 +697,17 @@
       window.open('https://drive.google.com/drive/folders/' + encodeURIComponent(cu.carpetaGeneral), '_blank', 'noopener');
     });
     cab.appendChild(dr);
+    /* 10/10 · REHACER DOCUMENTOS (supervisor y revisores), misma lógica de ADMIN */
+    if (window.REHACER) {
+      var rh = window.REHACER.boton(D, function () {
+        /* si sigue en esta cuenta y no tiene notas sin guardar, se recarga con los documentos nuevos */
+        if (!D || D.cuenta.fila !== cu.fila || !CAJA || !CAJA.isConnected) return;
+        if (B && B.sucia) { K.aviso('Guarda tu revisión y vuelve a abrir la cuenta para ver los documentos nuevos.', 'info', 8000); return; }
+        if (window.DOCS_REV) window.DOCS_REV.olvidar();
+        C.app.innerHTML = ''; detalle(SUB_DET);
+      });
+      if (rh) cab.appendChild(rh);
+    }
     if (cu.supervisor && K.piezas.personas) {
       var s = K.nodo('<div class="rv-cab__sup"></div>');
       s.appendChild(K.piezas.personas.chip(cu.supervisor, 'Supervisor(a) · los avisos van a su nombre', { tam: 34 }));
@@ -733,6 +752,9 @@
         '<span>Retomas donde quedaste: <b>' + K.esc(sec ? sec.t : B.posicion.seccion) + '</b>' +
         (B.posicion.obligacion ? ', obligación ' + B.posicion.obligacion : '') + '.</span></p>'));
     }
+
+    /* 10/10 · lo que se le ha escrito al contratista cada vez que se devolvió */
+    if (window.REHACER) { var hob = window.REHACER.historial(D, nombre); if (hob) caja.appendChild(hob); }
 
     caja.appendChild(progreso());
 
