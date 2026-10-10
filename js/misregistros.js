@@ -121,6 +121,7 @@
 
   function vista() {
     var caja = K.nodo('<div class="kit-ancho vista ct of rp rg mr"></div>');
+    if (K.piezas.exportar && K.piezas.exportar.prepararGerencial) K.piezas.exportar.prepararGerencial();   /* 10/10 · informe gerencial listo antes del toque */
     C.app.appendChild(caja);
     O.cabecera(caja, 'descargar', 'MIS REGISTROS',
       'Todo lo que has hecho en la app, con fecha y hora. Escoge el periodo y descárgalo en PDF o Excel.');
