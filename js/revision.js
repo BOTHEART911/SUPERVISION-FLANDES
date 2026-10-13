@@ -1182,7 +1182,7 @@
 
     var ev = o.evidencias || [];
     var tira = K.nodo('<div class="rv-evi"><p class="rv-obl__et">Evidencias <small>' + ev.length + ' de 3</small></p></div>');
-    if (!ev.length) tira.appendChild(K.nodo('<p class="rv-obl__vacia">' + K.icono('imagen', 14) + ' Sin evidencias.</p>'));
+    if (!ev.length) tira.appendChild(K.nodo('<p class="rv-obl__vacia">' + K.icono('imagen', 14) + ' Sin imágenes.</p>'));
     var fotos = K.nodo('<div class="rv-evi__fotos"></div>');
     ev.forEach(function (e, i) {
       var b = K.nodo('<button type="button" class="rv-evi__f" aria-label="Ver evidencia ' + (i + 1) + ' con zoom"><img alt="" loading="lazy"><span>' + (i + 1) + '</span></button>');
