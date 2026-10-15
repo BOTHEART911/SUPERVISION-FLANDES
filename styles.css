@@ -2713,3 +2713,35 @@
 
 /* 10/10 · botón INFORME GERENCIAL (Mis registros): el ícono en dorado lo distingue de PDF y Excel */
 .rp-gerencial svg { color: #c99e2e; }
+
+/* ============================================================
+   15/10 · AGENDA DE REVISIÓN (js/agenda.js, igual en Supervisión,
+   Contratación y ADMIN)
+   ============================================================ */
+.ag-zona { display: grid; gap: 14px; }
+.ag-t { margin: 6px 0 -4px; }
+.ag-hoy { display: grid; gap: 8px; }
+.ag-hoy__l, .ag-g__l { display: flex; flex-wrap: wrap; gap: 6px; }
+.ag-cal { display: grid; gap: 10px; overflow: hidden; }
+.ag-dias { display: flex; gap: 6px; overflow-x: auto; padding: 4px 2px 8px; scroll-snap-type: x proximity; }
+.ag-dia { flex: 0 0 42px; display: grid; justify-items: center; gap: 3px; padding: 6px 0; border: 1px solid var(--k-linea); border-radius: var(--k-r-md);
+  background: var(--k-papel); color: var(--k-tinta); cursor: pointer; scroll-snap-align: center; font: inherit; }
+.ag-dia__n { font-weight: 700; font-size: .85rem; min-height: 1.1em; color: var(--k-marca); }
+.ag-dia__barra { width: 14px; height: 64px; border-radius: 7px; background: var(--k-papel-2); display: flex; align-items: flex-end; overflow: hidden; }
+.ag-dia__barra i { display: block; width: 100%; background: var(--k-marca); border-radius: 7px; min-height: 0; transition: height .25s; }
+.ag-dia__d { font-weight: 700; font-size: .95rem; }
+.ag-dia__s { font-size: .7rem; color: var(--k-tinta-2); text-transform: uppercase; }
+.ag-dia--finde { background: var(--k-papel-2); color: var(--k-apagado); }
+.ag-dia--vacio { cursor: default; }
+.ag-dia--sel { border-color: var(--k-marca); box-shadow: 0 0 0 2px var(--k-marca-clara); }
+.ag-grupos { display: grid; gap: 8px; }
+.ag-g summary { display: flex; align-items: center; gap: 10px; cursor: pointer; list-style: none; }
+.ag-g summary::-webkit-details-marker { display: none; }
+.ag-g__n { min-width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--k-marca); color: #fff; font-weight: 700; }
+.ag-g__t { font-weight: 700; flex: 1; }
+.ag-g__v { font-size: .85rem; color: var(--k-tinta-2); }
+.ag-g[open] .ag-g__l { margin-top: 10px; }
+.ag-lista { margin-top: 2px; }
+.ag-dd { background: rgba(var(--k-marca-rgb), .12); color: var(--k-marca); }
+.ag-nota { display: flex; gap: 6px; align-items: flex-start; }
+@media (max-width: 520px) { .ag-g__v { display: none; } }

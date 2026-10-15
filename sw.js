@@ -60,6 +60,7 @@ var ARMAZON = [
   './js/institucional.js',
   /* 10.5 · cuentas atrasadas */
   './js/atrasos.js',
+  './js/agenda.js',
   './kit/informe-cuentas.js',
   './img/icono-32.png',
   './img/icono-180.png',

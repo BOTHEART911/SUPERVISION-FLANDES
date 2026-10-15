@@ -189,6 +189,8 @@
     }
 
     if (window.COMUNICACIONES_SUP) window.COMUNICACIONES_SUP.configurar({ app: app, errorCaja: errorCaja });
+    /* 15/10 · AGENDA DE REVISIÓN (solo lectura, un viaje) */
+    if (window.AGENDA) window.AGENDA.configurar({ modo: 'SUPERVISION', app: app, errorCaja: errorCaja });
 
     /* 10.5 · cuentas atrasadas: los datos son los de 'cuentas' (ningún viaje nuevo) */
     if (window.ATRASOS) window.ATRASOS.configurar({
@@ -308,6 +310,7 @@
     if (window.REVISION) window.REVISION.olvidar();
     if (window.COMUNICACIONES_SUP) window.COMUNICACIONES_SUP.olvidar();
     if (window.ATRASOS) window.ATRASOS.olvidar();
+    if (window.AGENDA) window.AGENDA.olvidar();
     ['CONTRATISTAS', 'REQS', 'COMUS', 'FIRMADOS', 'REPORTE', 'INFORME', 'INSTITUCIONAL'].forEach(function (m) {
       if (window[m] && window[m].olvidar) window[m].olvidar();
     });
@@ -326,6 +329,7 @@
     comunicaciones: function (sub) { window.COMUNICACIONES_SUP.vista(sub); },
     /* 10.5 */
     atrasos: function () { window.ATRASOS.vista(); },
+    agenda: function () { window.AGENDA.vista(); },   /* 15/10 */
     /* 6.3 */
     contratistas: function (sub) { window.CONTRATISTAS.lista(sub); },
     contratista: function (sub) { window.CONTRATISTAS.detalle(sub); },
@@ -346,6 +350,7 @@
     cuenta: 'CUENTA',
     comunicaciones: 'SOLICITUD A COMUNICACIONES',
     atrasos: 'CUENTAS ATRASADAS',
+    agenda: 'AGENDA DE REVISIÓN',
     contratistas: 'CONTRATISTAS',
     contratista: 'CONTRATISTA',
     informe: 'INFORME DE CUENTAS',
@@ -361,7 +366,7 @@
 
   /* El permiso de cada vista (llave PERMISOS de CONFIG). El CORE lo vuelve
      a exigir en cada llamada: esto solo evita pintar lo que no se puede. */
-  var PERMISO = { revisar: 'revisarCuentas', cuenta: 'revisarCuentas', atrasos: 'revisarCuentas', comunicaciones: 'solicitudComunicaciones',
+  var PERMISO = { revisar: 'revisarCuentas', cuenta: 'revisarCuentas', atrasos: 'revisarCuentas', agenda: 'revisarCuentas', comunicaciones: 'solicitudComunicaciones',
                   contratistas: 'contratistas', contratista: 'contratistas', informe: 'descargarInforme',
                   firmados: 'supervisionFirmados', reporte: 'reportes', requerimientos: 'requerimientos',
                   comunicados: 'comunicados', directorio: 'directorio', drive: 'driveHacienda', perfil: 'configuracion',
@@ -452,6 +457,9 @@
         /* 06/10 · MIS REGISTROS: lo que hizo esta persona, para descargarlo */
         tCuentas.push(accesoIcono('MIS REGISTROS', 'Lo que has hecho: cuentas aprobadas y devueltas, planes aceptados, informes y actas firmados, vistos buenos. En PDF o Excel',
           'descargar', function () { irA('misregistros'); }));
+        /* 15/10 · qué días llega cuánto trabajo y de quiénes */
+        tCuentas.push(accesoIcono('AGENDA DE REVISIÓN', 'Qué días te llega cuánto trabajo y de quiénes, según el corte de cada contratista',
+          'calendario', function () { irA('agenda'); }));
         bloque('CUENTAS', tCuentas);
         /* 10.5 · los contratistas con la cuenta atrasada, con el botón de compartir */
         var sAt = K.nodo('<section class="bloque" aria-label="Cuentas atrasadas"><h3 class="bloque__t">CUENTAS ATRASADAS</h3></section>');
