@@ -17,6 +17,11 @@
    con flechas, "Hoy" y un PDF de lo que se está viendo en cada una.
    Todo sale del mismo viaje ('agenda'): cambiar de vista o de periodo
    no vuelve al servidor. Solo lectura: no cambia nada.
+
+   17/10 · EN ROJO lo que no llegó: si el día probable ya pasó y la cuenta
+   no se ha presentado, se queda en su día pintada de rojo (x.atraso = 1);
+   si además se le venció el plazo, rojo fuerte (x.atraso = 2: también está
+   en CUENTAS ATRASADAS). Con un CORE anterior no hay rojos (no trae atraso).
    ============================================================ */
 (function () {
   'use strict';
@@ -49,6 +54,12 @@
   function finde(d) { return d.getDay() === 0 || d.getDay() === 6; }
   function cap(s) { s = String(s || ''); return s.charAt(0).toUpperCase() + s.slice(1); }
   function mesTxt(d) { return MESES[d.getMonth()] + ' ' + d.getFullYear(); }
+  function tarde(x) { return +x.atraso > 0; }
+  function vencida(x) { return +x.atraso === 2; }
+  function txtTarde(x) {
+    return vencida(x) ? 'Plazo vencido el ' + corta(x.limite) + ' · está en CUENTAS ATRASADAS'
+      : 'No ha llegado · se esperaba el ' + corta(x.probable) + ' · plazo hasta el ' + corta(x.limite);
+  }
   function rangoSem(l) { var f = mas(l, 6); return l.getMonth() === f.getMonth() ? l.getDate() + ' al ' + f.getDate() + ' de ' + MESES[f.getMonth()] : corta(l) + ' al ' + corta(f); }
 
   /* ══════════════ datos ══════════════ */
@@ -82,7 +93,7 @@
     filtradas().forEach(function (x) { de(x.probable).vienen.push(x); });
     llegadasF().forEach(function (x) { de(x.fecha).llego.push(x); });
     Object.keys(m).forEach(function (k) {
-      m[k].vienen.sort(function (a, b) { return a.nombre < b.nombre ? -1 : 1; });
+      m[k].vienen.sort(function (a, b) { return (+b.atraso || 0) - (+a.atraso || 0) || (a.nombre < b.nombre ? -1 : 1); });
       m[k].llego.sort(function (a, b) { return a.nombre < b.nombre ? -1 : 1; });
     });
     return m;
@@ -164,20 +175,22 @@
   }
 
   function cifras() {
-    var l = items(), h = hoy(), en7 = 0, cuenta = {}, max = null, mesSig = mas(new Date(h.getFullYear(), h.getMonth() + 2, 1), -1);
+    var todas = items(), h = hoy(), en7 = 0, cuenta = {}, max = null, mesSig = mas(new Date(h.getFullYear(), h.getMonth() + 2, 1), -1);
+    var rojas = todas.filter(tarde), l = todas.filter(function (x) { return !tarde(x); });
     l.forEach(function (x) {
       var p = aFecha(x.probable);
-      if (p && (p - h) / 864e5 < 7) en7++;
+      if (p && p >= h && (p - h) / 864e5 < 7) en7++;
       cuenta[x.probable] = (cuenta[x.probable] || 0) + 1;
     });
     Object.keys(cuenta).forEach(function (k) { if (!max || cuenta[k] > cuenta[max]) max = k; });
     var c = K.nodo('<div class="kit-tarjeta at-cifras ag-cifras"></div>');
     var lg = llegadas().length;
-    [[hoyLista().length, 'En tu bandeja hoy'], [en7, 'Llegan en 7 días'],
+    [[hoyLista().length, 'En tu bandeja hoy'], [rojas.length, rojas.length === 1 ? 'No ha llegado en su día' : 'No han llegado en su día', 'malo'], [en7, 'Llegan en 7 días'],
      [l.length, 'Por llegar hasta el ' + corta(D.hasta || dmy(mesSig))],
      D.llego ? [lg, 'Ya llegaron en ' + MESES[h.getMonth()]] : [max ? cuenta[max] : 0, max ? 'El día más cargado: ' + corta(max) : 'Sin días cargados']].forEach(function (x) {
-      var d = K.nodo('<div class="at-cifra"><b></b><span></span></div>');
+      var d = K.nodo('<div class="at-cifra' + (x[2] === 'malo' && x[0] ? ' ag-cifra--malo' : '') + '"><b></b><span></span></div>');
       d.querySelector('b').textContent = K.numero(x[0]); d.querySelector('span').textContent = x[1];
+      if (x[2] === 'malo' && x[0]) { d.setAttribute('role', 'button'); d.tabIndex = 0; d.title = 'Ver cuáles'; d.addEventListener('click', function () { V.lista = 'tarde'; cambiarModo('lista'); }); }
       c.appendChild(d);
     });
     var p = K.nodo('<p class="formulario__nota at-corte"></p>');
@@ -309,7 +322,9 @@
     var g = K.nodo('<div class="ag-mes__g"></div>');
     for (var d = ini; d <= r[1] || d.getDay() !== 1; d = mas(d, 1)) {
       var key = dmy(d), e = m[key] || vacioDia(), n = e.vienen.length, l = e.llego.length, otro = d.getMonth() !== r[0].getMonth();
-      var c = K.nodo('<button type="button" class="ag-celda"><span class="ag-celda__d"></span><span class="ag-celda__n"></span><span class="ag-celda__l"></span><span class="ag-celda__q"></span></button>');
+      var nt = e.vienen.filter(tarde).length;
+      var c = K.nodo('<button type="button" class="ag-celda"><span class="ag-celda__d"></span><span class="ag-celda__n"></span><span class="ag-celda__t"></span><span class="ag-celda__l"></span><span class="ag-celda__q"></span></button>');
+      if (nt) c.classList.add('ag-celda--tarde');
       if (otro) c.classList.add('ag-celda--otro');
       if (finde(d)) c.classList.add('ag-celda--finde');
       if (+d === +h) c.classList.add('ag-celda--hoy');
@@ -317,12 +332,13 @@
       if (V.dia === key) c.classList.add('ag-celda--sel');
       if (n + l) c.style.setProperty('--ag-int', String(Math.round(((n + l) / max) * 100) / 100));
       c.querySelector('.ag-celda__d').textContent = d.getDate();
-      if (n) c.querySelector('.ag-celda__n').textContent = n;
+      if (n - nt) c.querySelector('.ag-celda__n').textContent = n - nt;
+      if (nt) c.querySelector('.ag-celda__t').innerHTML = '<b>' + nt + '</b><em> sin llegar</em>';
       if (l) c.querySelector('.ag-celda__l').innerHTML = '<b>' + l + '</b><em> ' + (l === 1 ? 'llegó' : 'llegaron') + '</em>';
       var q = c.querySelector('.ag-celda__q');
-      e.vienen.concat(e.llego).slice(0, 3).forEach(function (x) { var i = K.nodo('<i></i>'); i.textContent = nombre(x.nombre).split(' ').slice(0, 2).join(' '); q.appendChild(i); });
+      e.vienen.concat(e.llego).slice(0, 3).forEach(function (x) { var i = K.nodo('<i' + (tarde(x) ? ' class="ag-r"' : '') + '></i>'); i.textContent = nombre(x.nombre).split(' ').slice(0, 2).join(' '); q.appendChild(i); });
       if (n + l > 3) { var mm = K.nodo('<i class="ag-celda__mas"></i>'); mm.textContent = '+' + (n + l - 3); q.appendChild(mm); }
-      c.title = larga(d) + ': ' + (n ? cuentas(n) + ' por llegar' : '') + (n && l ? ' · ' : '') + (l ? l + ' ya llegaron' : '') + (n + l ? '' : 'nada');
+      c.title = larga(d) + ': ' + (nt ? nt + ' sin llegar · ' : '') + (n - nt ? cuentas(n - nt) + ' por llegar' : '') + (n && l ? ' · ' : '') + (l ? l + ' ya llegaron' : '') + (n + l ? '' : 'nada');
       c.setAttribute('aria-label', c.title);
       (function (key, total) {
         c.addEventListener('click', function () { if (!total) return; V.dia = V.dia === key ? '' : key; cuerpo(); });
@@ -330,7 +346,7 @@
       g.appendChild(c);
     }
     s.appendChild(g);
-    s.appendChild(K.nodo('<p class="formulario__nota ag-ley"><span class="ag-ley__v"></span> por llegar (día probable) <span class="ag-ley__l"></span> ya llegaron · los fines de semana van en gris: lo que cae ahí se presenta el siguiente día hábil.</p>'));
+    s.appendChild(K.nodo('<p class="formulario__nota ag-ley"><span class="ag-ley__v"></span> por llegar (día probable) <span class="ag-ley__r"></span> no llegó en su día <span class="ag-ley__l"></span> ya llegaron · los fines de semana van en gris: lo que cae ahí se presenta el siguiente día hábil.</p>'));
     zCuerpo.appendChild(s);
     if (V.dia) {
       var dd = aFecha(V.dia);
@@ -347,17 +363,19 @@
   /* ══════════════ SEMANA: siete columnas ══════════════ */
 
   function vSemana(m) {
-    var r = rango(), h = hoy(), tot = 0, totL = 0;
+    var r = rango(), h = hoy(), tot = 0, totL = 0, totT = 0;
     var s = K.nodo('<div class="ag-sem"></div>');
     for (var i = 0; i < 7; i++) {
       var d = mas(r[0], i), key = dmy(d), e = m[key] || vacioDia();
-      tot += e.vienen.length; totL += e.llego.length;
+      tot += e.vienen.length; totL += e.llego.length; totT += e.vienen.filter(tarde).length;
       var col = K.nodo('<section class="kit-tarjeta ag-sem__dia"><button type="button" class="ag-sem__cab"><b></b><span></span><em></em></button><div class="ag-sem__l"></div></section>');
       if (finde(d)) col.classList.add('ag-sem__dia--finde');
       if (+d === +h) col.classList.add('ag-sem__dia--hoy');
       col.querySelector('.ag-sem__cab b').textContent = cap(DIAS_C[d.getDay()]) + ' ' + d.getDate();
       col.querySelector('.ag-sem__cab span').textContent = MESES[d.getMonth()].slice(0, 3);
-      col.querySelector('.ag-sem__cab em').textContent = e.vienen.length ? cuentas(e.vienen.length) : (e.llego.length ? e.llego.length + ' llegaron' : '');
+      var ntS = e.vienen.filter(tarde).length;
+      col.querySelector('.ag-sem__cab em').textContent = [e.vienen.length - ntS ? cuentas(e.vienen.length - ntS) : '', ntS ? ntS + ' sin llegar' : '', e.llego.length ? e.llego.length + (e.llego.length === 1 ? ' llegó' : ' llegaron') : ''].filter(Boolean).join(' · ');
+      if (ntS) col.classList.add('ag-sem__dia--tarde');
       (function (d) { col.querySelector('.ag-sem__cab').addEventListener('click', function () { V.ref = d; cambiarModo('dia'); }); })(d);
       var ll = col.querySelector('.ag-sem__l');
       if (fuera(d)) ll.appendChild(K.nodo('<p class="ag-vacio">Fuera de la agenda</p>'));
@@ -367,15 +385,17 @@
       s.appendChild(col);
     }
     var p = K.nodo('<p class="formulario__nota ag-tot"></p>');
-    p.textContent = 'Esta semana: ' + cuentas(tot) + ' por llegar' + (totL ? ' · ' + totL + ' ya llegaron' : '') + '. Toca un día para abrirlo.';
+    p.textContent = 'Esta semana: ' + cuentas(tot - totT) + ' por llegar' + (totT ? ' · ' + totT + ' no llegaron en su día' : '') + (totL ? ' · ' + totL + ' ya llegaron' : '') + '. Toca un día para abrirlo.';
     zCuerpo.appendChild(p);
     zCuerpo.appendChild(s);
   }
 
   function mini(x, llego) {
-    var t = K.nodo('<div class="ag-mini' + (llego ? ' ag-mini--llego' : '') + '"><b></b><span></span></div>');
+    var rojo = !llego && tarde(x);
+    var t = K.nodo('<div class="ag-mini' + (llego ? ' ag-mini--llego' : '') + (rojo ? ' ag-mini--tarde' + (vencida(x) ? ' ag-mini--vencida' : '') : '') + '"><b></b><span></span></div>');
     t.querySelector('b').textContent = nombre(x.nombre);
-    t.querySelector('span').textContent = 'Cuenta ' + x.informe + ' de ' + x.total + (llego ? ' · llegó · ' + estadoTxt(x.estado) : (ESTADO_T[x.estado] ? ' · ' + ESTADO_T[x.estado] : ''));
+    t.querySelector('span').textContent = 'Cuenta ' + x.informe + ' de ' + x.total + (llego ? ' · llegó · ' + estadoTxt(x.estado)
+      : rojo ? (vencida(x) ? ' · plazo vencido' : ' · no ha llegado') : (ESTADO_T[x.estado] ? ' · ' + ESTADO_T[x.estado] : ''));
     return t;
   }
   function estadoTxt(e) { return cap(String(e || '').toLowerCase()); }
@@ -387,24 +407,31 @@
     var cortan = filtradas().filter(function (x) { return x.fin === key; });
     var p = K.nodo('<p class="formulario__nota ag-tot"></p>');
     p.textContent = fuera(V.ref) ? 'Este día queda fuera de la agenda (va del ' + corta(desde()) + ' al ' + corta(hasta()) + ').'
-      : (e.vienen.length ? cuentas(e.vienen.length) + ' por llegar' : 'Nada por llegar') + (e.llego.length ? ' · ' + e.llego.length + ' ya llegaron' : '') +
+      : ((function () { var t = e.vienen.filter(tarde).length, v = e.vienen.length - t; return (t ? t + (t === 1 ? ' no llegó' : ' no llegaron') + ' en su día · ' : '') + (v ? cuentas(v) + ' por llegar' : 'Nada más por llegar'); })()) + (e.llego.length ? ' · ' + e.llego.length + ' ya llegaron' : '') +
         (cortan.length ? ' · ' + cortan.length + ' cortan periodo este día' : '') + (finde(V.ref) ? ' · fin de semana' : '');
     zCuerpo.appendChild(p);
     zCuerpo.appendChild(listaDia(e));
     if (cortan.length) {
       var c = K.nodo('<details class="kit-tarjeta ag-g"><summary><b class="ag-g__n"></b><span class="ag-g__t">Cortan periodo este día</span></summary><div class="ag-g__l"></div></details>');
       c.querySelector('.ag-g__n').textContent = cortan.length;
-      cortan.forEach(function (x) { var f = K.nodo('<span class="at-chip"></span>'); f.textContent = nombre(x.nombre) + ' · llega ~' + corta(x.probable); c.querySelector('.ag-g__l').appendChild(f); });
+      cortan.forEach(function (x) { c.querySelector('.ag-g__l').appendChild(chipCorte(x)); });
       zCuerpo.appendChild(c);
     }
   }
 
   function listaDia(e) {
     var z = K.nodo('<div class="ag-dia-l"></div>');
-    if (e.vienen.length) {
-      z.appendChild(titulo('POR LLEGAR · ' + e.vienen.length));
+    var rojas = e.vienen.filter(tarde), vienen = e.vienen.filter(function (x) { return !tarde(x); });
+    if (rojas.length) {
+      z.appendChild(titulo('NO LLEGARON EN SU DÍA · ' + rojas.length, 'ag-t--malo'));
+      var gr = K.nodo('<div class="kit-rejilla kit-rejilla--auto ag-lista"></div>');
+      rojas.forEach(function (x) { gr.appendChild(tarjeta(x)); });
+      z.appendChild(gr);
+    }
+    if (vienen.length) {
+      z.appendChild(titulo('POR LLEGAR · ' + vienen.length));
       var g = K.nodo('<div class="kit-rejilla kit-rejilla--auto ag-lista"></div>');
-      e.vienen.forEach(function (x) { g.appendChild(tarjeta(x)); });
+      vienen.forEach(function (x) { g.appendChild(tarjeta(x)); });
       z.appendChild(g);
     }
     if (e.llego.length) {
@@ -416,7 +443,12 @@
     if (!e.vienen.length && !e.llego.length) z.appendChild(K.nodo('<p class="formulario__nota">Nadie este día' + (F.buscar || F.sup || F.sec ? ' con esos filtros' : '') + '.</p>'));
     return z;
   }
-  function titulo(t) { var h = K.nodo('<h3 class="bloque__t ag-t"></h3>'); h.textContent = t; return h; }
+  function titulo(t, cl) { var h = K.nodo('<h3 class="bloque__t ag-t' + (cl ? ' ' + cl : '') + '"></h3>'); h.textContent = t; return h; }
+  function chipCorte(x) {
+    var f = K.nodo('<span class="at-chip' + (tarde(x) ? ' at-chip--malo' : '') + '"></span>');
+    f.textContent = nombre(x.nombre) + ' · cuenta ' + x.informe + (tarde(x) ? (vencida(x) ? ' · plazo vencido' : ' · no llegó (se esperaba el ' + corta(x.probable) + ')') : ' · llega ~' + corta(x.probable));
+    return f;
+  }
 
   /* ══════════════ CORTES: por semana y, dentro, por día de corte ══════════════ */
 
@@ -438,10 +470,10 @@
         t.querySelector('.ag-g__t').textContent = 'Corte ' + larga(k);
         var lim = g.reduce(function (a, x) { return !a || aFecha(x.limite) > aFecha(a) ? x.limite : a; }, '');
         t.querySelector('.ag-g__v').textContent = 'presentan hasta el ' + corta(lim);
-        g.sort(function (a, b) { return aFecha(a.probable) - aFecha(b.probable); }).forEach(function (x) {
-          var f = K.nodo('<span class="at-chip"></span>');
-          f.textContent = nombre(x.nombre) + ' · cuenta ' + x.informe + ' · llega ~' + corta(x.probable);
-          t.querySelector('.ag-g__l').appendChild(f);
+        var ntc = g.filter(tarde).length;
+        if (ntc) { t.classList.add('ag-g--tarde'); t.querySelector('.ag-g__v').textContent += ' · ' + ntc + ' sin llegar'; }
+        g.sort(function (a, b) { return (+b.atraso || 0) - (+a.atraso || 0) || aFecha(a.probable) - aFecha(b.probable); }).forEach(function (x) {
+          t.querySelector('.ag-g__l').appendChild(chipCorte(x));
         });
         gz.appendChild(t);
       });
@@ -452,17 +484,22 @@
   /* ══════════════ LISTA ══════════════ */
 
   function vLista() {
-    var vienen = filtradas().slice().sort(function (a, b) { return aFecha(a.probable) - aFecha(b.probable) || (a.nombre < b.nombre ? -1 : 1); });
+    var rojas = filtradas().filter(tarde).sort(function (a, b) { return aFecha(a.probable) - aFecha(b.probable) || (a.nombre < b.nombre ? -1 : 1); });
+    var vienen = filtradas().filter(function (x) { return !tarde(x); }).sort(function (a, b) { return aFecha(a.probable) - aFecha(b.probable) || (a.nombre < b.nombre ? -1 : 1); });
     var llego = llegadasF().slice().sort(function (a, b) { return aFecha(b.fecha) - aFecha(a.fecha) || (a.nombre < b.nombre ? -1 : 1); });
-    if (D.llego) {
+    var ops = [{ valor: 'vienen', texto: 'Por llegar' }], cn = { vienen: vienen.length };
+    if (rojas.length || V.lista === 'tarde') { ops.push({ valor: 'tarde', texto: 'No llegaron en su día' }); cn.tarde = rojas.length; }
+    if (D.llego) { ops.push({ valor: 'llego', texto: 'Ya llegaron' }); cn.llego = llego.length; }
+    if (!cn.hasOwnProperty(V.lista)) V.lista = 'vienen';
+    if (ops.length > 1) {
       var z = K.nodo('<div class="at-pas"></div>');
       zCuerpo.appendChild(z);
-      var f = K.piezas.pastillas.montar(z, { opciones: [{ valor: 'vienen', texto: 'Por llegar' }, { valor: 'llego', texto: 'Ya llegaron' }], valor: V.lista,
-        alCambiar: function (v) { V.lista = v; cuerpo(); } });
-      if (f) f.conteos({ vienen: vienen.length, llego: llego.length });
+      var f = K.piezas.pastillas.montar(z, { opciones: ops, valor: V.lista, alCambiar: function (v) { V.lista = v; cuerpo(); } });
+      if (f) f.conteos(cn);
     }
-    var son = V.lista === 'llego' && D.llego ? llego : vienen;
-    zCuerpo.appendChild(titulo(V.lista === 'llego' && D.llego ? 'YA LLEGARON EN ' + MESES[hoy().getMonth()].toUpperCase() + ' · ' + son.length : 'TODAS LAS QUE VIENEN · ' + son.length));
+    var son = V.lista === 'llego' ? llego : V.lista === 'tarde' ? rojas : vienen;
+    zCuerpo.appendChild(titulo(V.lista === 'llego' ? 'YA LLEGARON EN ' + MESES[hoy().getMonth()].toUpperCase() + ' · ' + son.length
+      : V.lista === 'tarde' ? 'NO LLEGARON EN SU DÍA · ' + son.length : 'TODAS LAS QUE VIENEN · ' + son.length, V.lista === 'tarde' ? 'ag-t--malo' : ''));
     if (!son.length) { zCuerpo.appendChild(O().vacio('Nadie con esos filtros.', limpiar)); return; }
     var g = K.nodo('<div class="kit-rejilla kit-rejilla--auto ag-lista"></div>');
     son.forEach(function (x) { g.appendChild(son === llego ? tarjetaLlego(x) : tarjeta(x)); });
@@ -489,9 +526,12 @@
   }
 
   function tarjeta(x) {
-    var t = K.nodo('<article class="kit-tarjeta at-tar ag-tar"></article>');
-    var c = cabTarjeta(x, x.probable); c.dd.title = 'Día probable';
+    var rojo = tarde(x);
+    var t = K.nodo('<article class="kit-tarjeta at-tar ag-tar' + (rojo ? ' ag-tar--tarde' + (vencida(x) ? ' ag-tar--vencida' : '') : '') + '"></article>');
+    var c = cabTarjeta(x, x.probable); c.dd.title = rojo ? 'Se esperaba este día y no llegó' : 'Día probable';
+    if (rojo) c.dd.classList.add('ag-dd--tarde');
     t.appendChild(c.cab);
+    if (rojo) { var av = K.nodo('<p class="ag-tarde"></p>'); av.innerHTML = K.icono('aviso', 15) + ' <span></span>'; av.querySelector('span').textContent = txtTarde(x); t.appendChild(av); }
     var det = K.nodo('<p class="at-tar__det"></p>');
     det.innerHTML = K.icono('calendario', 15) + ' <span>Cuenta <b>' + x.informe + '</b> de ' + x.total + ' · periodo ' + K.esc(corta(x.ini)) + ' al ' + K.esc(corta(x.fin)) +
       ' · puede presentarla hasta el <b>' + K.esc(corta(x.limite)) + '</b></span>';
@@ -530,16 +570,18 @@
     var conVienen = !(V.modo === 'lista' && V.lista === 'llego');
     if (conVienen) filtradas().forEach(function (x) {
       if (V.modo === 'cortes' ? !dentro(x.fin) : !dentro(x.probable)) return;
-      out.push({ tipo: 'Por llegar', fecha: x.probable, dia: larga(x.probable), nombre: nombre(x.nombre), contrato: x.contrato, id: x.id, supervisor: nombre(x.sup), secretaria: secNombre(x.sec),
+      if (V.modo === 'lista' && (V.lista === 'tarde') !== tarde(x)) return;
+      out.push({ tipo: vencida(x) ? 'Vencida' : tarde(x) ? 'No llegó' : 'Por llegar', aviso: tarde(x) ? txtTarde(x) : '', fecha: x.probable, dia: larga(x.probable), nombre: nombre(x.nombre), contrato: x.contrato, id: x.id, supervisor: nombre(x.sup), secretaria: secNombre(x.sec),
                  cuenta: x.informe + ' de ' + x.total, informe: x.informe, total: x.total, inicio: x.ini, fin: x.fin, limite: x.limite,
                  suele: x.hist ? habiles(x.lag) + ' (' + x.hist + ' cuentas)' : 'sin historia (' + habiles(x.lag) + ')', estado: ESTADO_T[x.estado] || estadoTxt(x.estado) });
     });
     if (conLlego) llegadasF().forEach(function (x) {
       if (!dentro(x.fecha)) return;
-      out.push({ tipo: 'Llegó', fecha: x.fecha, dia: larga(x.fecha), nombre: nombre(x.nombre), contrato: x.contrato, id: x.id, supervisor: nombre(x.sup), secretaria: secNombre(x.sec),
+      out.push({ tipo: 'Llegó', aviso: '', fecha: x.fecha, dia: larga(x.fecha), nombre: nombre(x.nombre), contrato: x.contrato, id: x.id, supervisor: nombre(x.sup), secretaria: secNombre(x.sec),
                  cuenta: x.informe + ' de ' + x.total, informe: x.informe, total: x.total, inicio: '', fin: '', limite: '', suele: '', estado: estadoTxt(x.estado) });
     });
-    out.sort(function (a, b) { return aFecha(a.fecha) - aFecha(b.fecha) || (a.tipo < b.tipo ? 1 : -1) || (a.nombre < b.nombre ? -1 : 1); });
+    var ORD = { Vencida: 0, 'No llegó': 1, 'Por llegar': 2, 'Llegó': 3 };
+    out.sort(function (a, b) { return aFecha(a.fecha) - aFecha(b.fecha) || ORD[a.tipo] - ORD[b.tipo] || (a.nombre < b.nombre ? -1 : 1); });
     return out;
   }
   function subtitulo(n) {
@@ -556,7 +598,7 @@
       { campo: 'id', titulo: 'ID contrato' }, { campo: 'supervisor', titulo: 'Supervisor' }, { campo: 'secretaria', titulo: 'Secretaría' },
       { campo: 'informe', titulo: 'Cuenta' }, { campo: 'total', titulo: 'Total de cuentas' }, { campo: 'inicio', titulo: 'Inicio del periodo' },
       { campo: 'fin', titulo: 'Fin del periodo (corte)' }, { campo: 'limite', titulo: 'Presenta hasta' }, { campo: 'suele', titulo: 'Suele tardar' },
-      { campo: 'estado', titulo: 'Estado hoy' }
+      { campo: 'estado', titulo: 'Estado hoy' }, { campo: 'aviso', titulo: 'Aviso' }
     ], fs);
   }
 
@@ -577,19 +619,19 @@
     return K.piezas.exportar.aPDF('Agenda de revisión · ' + etiqueta(), [
       { campo: 'cuenta', titulo: 'Cuenta' }, { campo: 'inicio', titulo: 'Inicio del periodo' }, { campo: 'fin', titulo: 'Corte' },
       { campo: 'limite', titulo: 'Presenta hasta' }, { campo: 'suele', titulo: 'Suele tardar' }, { campo: 'estado', titulo: 'Estado hoy' },
-      { campo: 'secretaria', titulo: 'Secretaría' }
+      { campo: 'secretaria', titulo: 'Secretaría' }, { campo: 'aviso', titulo: 'Aviso' }
     ], fs, {
       subtitulo: subtitulo(fs.length),
       bloque: { titulo: function (f) { return f.nombre; }, sub: function (f) { return 'Contrato ' + f.contrato + ' · ' + f.supervisor; },
-                marca: function (f) { return f.tipo === 'Llegó' ? 'Llegó ' + corta(f.fecha) : 'Llega ~' + corta(f.fecha); },
-                tono: function (f) { return f.tipo === 'Llegó' ? 'ok' : 'info'; } },
+                marca: function (f) { return f.tipo === 'Llegó' ? 'Llegó ' + corta(f.fecha) : f.tipo === 'Vencida' ? 'Vencida' : f.tipo === 'No llegó' ? 'No llegó' : 'Llega ~' + corta(f.fecha); },
+                tono: function (f) { return f.tipo === 'Llegó' ? 'ok' : (f.tipo === 'Por llegar' ? 'info' : 'malo'); } },
       grupo: function (f) {
         if (V.modo === 'cortes') { var c = aFecha(f.fin); return 'Semana del ' + rangoSem(lunes(c)) + ' · corte ' + larga(f.fin); }
-        return (f.tipo === 'Llegó' ? 'Llegaron el ' : 'Llegan el ') + f.dia;
+        return (f.tipo === 'Llegó' ? 'Llegaron el ' : f.tipo === 'Por llegar' ? 'Llegan el ' : 'Se esperaban el ') + f.dia;
       },
       resumen: function (l) {
-        var dias = {}, lg = 0; l.forEach(function (f) { dias[f.fecha] = 1; if (f.tipo === 'Llegó') lg++; });
-        return [{ etiqueta: 'Por llegar', valor: l.length - lg }, { etiqueta: 'Ya llegaron', valor: lg }, { etiqueta: 'Días', valor: Object.keys(dias).length },
+        var dias = {}, lg = 0, nl = 0; l.forEach(function (f) { dias[f.fecha] = 1; if (f.tipo === 'Llegó') lg++; else if (f.tipo !== 'Por llegar') nl++; });
+        return [{ etiqueta: 'Por llegar', valor: l.length - lg - nl }, { etiqueta: 'No llegaron en su día', valor: nl }, { etiqueta: 'Ya llegaron', valor: lg }, { etiqueta: 'Días', valor: Object.keys(dias).length },
                 { etiqueta: 'Plazo para presentar', valor: habiles(D.dias || 5) }];
       }
     });
@@ -628,7 +670,7 @@
       var n = doc.getNumberOfPages();
       for (var i = 1; i <= n; i++) {
         doc.setPage(i); doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(120, 130, 125);
-        doc.text('Por llegar = día probable (fin del periodo + lo que cada uno suele tardar). Llegó = fecha real de radicación. Solo consulta.', 10, H - 6);
+        doc.text('Por llegar = día probable (fin del periodo + lo que cada uno suele tardar). En rojo = su día pasó y no ha llegado. Llegó = fecha real de radicación. Solo consulta.', 10, H - 6);
         doc.text('Página ' + i + ' de ' + n, W - 10, H - 6, { align: 'right' });
       }
     }
@@ -641,8 +683,9 @@
   function pdfMes() {
     var m = porDia(), r = rango(), h = hoja(), doc = h.doc, n = 0, nl = 0, ini = lunes(r[0]), sem = [];
     for (var d = ini; d <= r[1] || d.getDay() !== 1; d = mas(d, 1)) sem.push(d);
-    sem.forEach(function (d) { if (d.getMonth() === r[0].getMonth()) { var e = m[dmy(d)]; if (e) { n += e.vienen.length; nl += e.llego.length; } } });
-    var y0 = h.membrete(subtitulo(n + nl) + ' · ' + n + ' por llegar · ' + nl + ' ya llegaron');
+    var nr = 0;
+    sem.forEach(function (d) { if (d.getMonth() === r[0].getMonth()) { var e = m[dmy(d)]; if (e) { n += e.vienen.length; nl += e.llego.length; nr += e.vienen.filter(tarde).length; } } });
+    var y0 = h.membrete(subtitulo(n + nl) + ' · ' + (n - nr) + ' por llegar · ' + (nr ? nr + ' no llegaron en su día · ' : '') + nl + ' ya llegaron');
     var filas = sem.length / 7, cw = (h.W - 20) / 7, ch = (h.H - y0 - 16 - 6) / filas, faltan = [];
     doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(70, 85, 78);
     ['LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO', 'DOMINGO'].forEach(function (t, i) { doc.text(t, 10 + i * cw + 2, y0 + 3.5); });
@@ -654,19 +697,21 @@
       doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(otro ? 160 : 20, otro ? 170 : 30, otro ? 165 : 25);
       doc.text(String(d.getDate()), x + 1.8, y + 4.2);
       if (otro) return;
-      var tag = (e.vienen.length ? e.vienen.length + ' por llegar' : '') + (e.vienen.length && e.llego.length ? ' · ' : '') + (e.llego.length ? e.llego.length + (e.llego.length > 1 ? ' llegaron' : ' llegó') : '');
-      if (tag) { doc.setFontSize(7); doc.setTextColor(6, 64, 43); doc.text(txtCorto(doc, tag, cw - 9), x + cw - 1.8, y + 4.2, { align: 'right' }); }
+      var ntP = e.vienen.filter(tarde).length, nvP = e.vienen.length - ntP;
+      var tag = [nvP ? nvP + ' por llegar' : '', ntP ? ntP + ' sin llegar' : '', e.llego.length ? e.llego.length + (e.llego.length > 1 ? ' llegaron' : ' llegó') : ''].filter(Boolean).join(' · ');
+      if (ntP) { doc.setDrawColor(192, 57, 43); doc.setLineWidth(.6); doc.rect(x + .3, y + .3, cw - .6, ch - .6); doc.setLineWidth(.2); }
+      if (tag) { doc.setFontSize(7); if (ntP) doc.setTextColor(192, 57, 43); else doc.setTextColor(6, 64, 43); doc.text(txtCorto(doc, tag, cw - 9), x + cw - 1.8, y + 4.2, { align: 'right' }); }
       doc.setFont('helvetica', 'normal'); doc.setFontSize(6.6);
       var cab = Math.max(0, Math.floor((ch - 7) / 3.1)), todos = e.vienen.map(function (x) { return [x, false]; }).concat(e.llego.map(function (x) { return [x, true]; }));
       var ver = todos.length > cab ? cab - 1 : todos.length;
       todos.slice(0, Math.max(0, ver)).forEach(function (p, j) {
-        doc.setTextColor(p[1] ? 30 : 20, p[1] ? 132 : 30, p[1] ? 73 : 25);
-        doc.text(txtCorto(doc, (p[1] ? '+ ' : '• ') + nombre(p[0].nombre) + ' · c' + p[0].informe, cw - 3.6), x + 1.8, y + 8 + j * 3.1);
+        if (!p[1] && tarde(p[0])) doc.setTextColor(192, 57, 43); else doc.setTextColor(p[1] ? 30 : 20, p[1] ? 132 : 30, p[1] ? 73 : 25);
+        doc.text(txtCorto(doc, (p[1] ? '+ ' : (tarde(p[0]) ? '! ' : '• ')) + nombre(p[0].nombre) + ' · c' + p[0].informe, cw - 3.6), x + 1.8, y + 8 + j * 3.1);
       });
       if (todos.length > ver) { doc.setTextColor(180, 83, 9); doc.text('… y ' + (todos.length - ver) + ' más (ver detalle)', x + 1.8, y + 8 + Math.max(0, ver) * 3.1); faltan.push(d); }
     });
     doc.setFontSize(7); doc.setTextColor(70, 85, 78); doc.setFont('helvetica', 'normal');
-    doc.text('• por llegar   + ya llegó   (cN = número de la cuenta)', 10, h.H - 11);
+    doc.text('• por llegar   ! no llegó en su día (en rojo)   + ya llegó   (cN = número de la cuenta)', 10, h.H - 11);
     if (faltan.length) detalle(h, m, faltan);
     h.pie(); guardarPDF(doc);
   }
@@ -683,7 +728,7 @@
       doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(6, 64, 43);
       doc.text(cap(larga(d)), x, y + 3); y += 4.6;
       doc.setFont('helvetica', 'normal'); doc.setFontSize(7.4);
-      e.vienen.forEach(function (p) { doc.setTextColor(20, 30, 25); doc.text(txtCorto(doc, '• ' + nombre(p.nombre) + ' · cuenta ' + p.informe + ' de ' + p.total, cw - 4), x + 1, y + 3); y += 3.6; });
+      e.vienen.forEach(function (p) { if (tarde(p)) doc.setTextColor(192, 57, 43); else doc.setTextColor(20, 30, 25); doc.text(txtCorto(doc, (tarde(p) ? '! ' : '• ') + nombre(p.nombre) + ' · cuenta ' + p.informe + ' de ' + p.total + (tarde(p) ? (vencida(p) ? ' · plazo vencido' : ' · no llegó') : ''), cw - 4), x + 1, y + 3); y += 3.6; });
       e.llego.forEach(function (p) { doc.setTextColor(30, 132, 73); doc.text(txtCorto(doc, '+ ' + nombre(p.nombre) + ' · cuenta ' + p.informe + ' · ' + estadoTxt(p.estado), cw - 4), x + 1, y + 3); y += 3.6; });
       y += 2.4;
     });
@@ -691,19 +736,20 @@
 
   function pdfSemana() {
     var m = porDia(), r = rango(), h = hoja(), doc = h.doc, n = 0, nl = 0, dias = [];
-    for (var i = 0; i < 7; i++) { var d = mas(r[0], i), e = m[dmy(d)] || vacioDia(); dias.push([d, e]); n += e.vienen.length; nl += e.llego.length; }
+    var nr = 0;
+    for (var i = 0; i < 7; i++) { var d = mas(r[0], i), e = m[dmy(d)] || vacioDia(); dias.push([d, e]); n += e.vienen.length; nl += e.llego.length; nr += e.vienen.filter(tarde).length; }
     var cw = (h.W - 20) / 7, lh = 3.5, pag = 0;
     /* cada día es una columna; si una no cabe, sigue en la página siguiente con las mismas columnas */
     var colas = dias.map(function (p) {
       var l = [];
-      p[1].vienen.forEach(function (x) { l.push(['v', nombre(x.nombre)], ['vs', 'Cuenta ' + x.informe + ' de ' + x.total + ' · contrato ' + x.contrato]); });
+      p[1].vienen.forEach(function (x) { if (tarde(x)) l.push(['r', nombre(x.nombre)], ['rs', (vencida(x) ? 'Plazo vencido' : 'No llegó') + ' · cuenta ' + x.informe + ' de ' + x.total]); else l.push(['v', nombre(x.nombre)], ['vs', 'Cuenta ' + x.informe + ' de ' + x.total + ' · contrato ' + x.contrato]); });
       p[1].llego.forEach(function (x) { l.push(['l', nombre(x.nombre)], ['ls', 'Llegó · cuenta ' + x.informe + ' · ' + estadoTxt(x.estado)]); });
       return l;
     });
     var quedan = function () { return colas.some(function (c) { return c.length; }); };
     do {
       if (pag) doc.addPage();
-      var y0 = h.membrete(subtitulo(n + nl) + ' · ' + n + ' por llegar · ' + nl + ' ya llegaron' + (pag ? ' · continuación' : ''));
+      var y0 = h.membrete(subtitulo(n + nl) + ' · ' + (n - nr) + ' por llegar · ' + (nr ? nr + ' no llegaron en su día · ' : '') + nl + ' ya llegaron' + (pag ? ' · continuación' : ''));
       var cabeza = 12, yMax = h.H - 14;
       dias.forEach(function (p, i) {
         var x = 10 + i * cw, d = p[0];
@@ -711,17 +757,18 @@
         doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(finde(d) ? 70 : 255, finde(d) ? 85 : 255, finde(d) ? 78 : 255);
         doc.text(cap(DIAS_L[d.getDay()]) + ' ' + d.getDate() + ' ' + MESES[d.getMonth()].slice(0, 3), x + 2, y0 + 5);
         doc.setFont('helvetica', 'normal'); doc.setFontSize(7.4);
-        doc.text((p[1].vienen.length ? p[1].vienen.length + ' por llegar' : 'nada por llegar') + (p[1].llego.length ? ' · ' + p[1].llego.length + ' llegaron' : ''), x + 2, y0 + 9.4);
+        var ntW = p[1].vienen.filter(tarde).length, nvW = p[1].vienen.length - ntW;
+        doc.text(txtCorto(doc, (nvW ? nvW + ' por llegar' : 'nada por llegar') + (ntW ? ' · ' + ntW + ' sin llegar' : '') + (p[1].llego.length ? ' · ' + p[1].llego.length + ' llegaron' : ''), cw - 4), x + 2, y0 + 9.4);
         doc.setDrawColor(205, 218, 211); doc.rect(x, y0, cw, yMax - y0);
         var y = y0 + cabeza + 4, c = colas[i];
         if (fuera(d) && !pag) { doc.setTextColor(140, 150, 145); doc.text('Fuera de la agenda', x + 2, y); }
         while (c.length && y + lh <= yMax - 1) {
           var it = c[0];
-          if ((it[0] === 'v' || it[0] === 'l') && y + lh * 2 > yMax - 1) break;   /* nombre y su línea van juntos */
+          if ((it[0] === 'v' || it[0] === 'l' || it[0] === 'r') && y + lh * 2 > yMax - 1) break;   /* nombre y su línea van juntos */
           c.shift();
-          var fuerte = it[0] === 'v' || it[0] === 'l';
+          var fuerte = it[0] === 'v' || it[0] === 'l' || it[0] === 'r';
           doc.setFont('helvetica', fuerte ? 'bold' : 'normal'); doc.setFontSize(fuerte ? 7.6 : 6.6);
-          if (it[0] === 'l' || it[0] === 'ls') doc.setTextColor(30, 132, 73); else doc.setTextColor(fuerte ? 20 : 90, fuerte ? 30 : 104, fuerte ? 25 : 97);
+          if (it[0] === 'r' || it[0] === 'rs') doc.setTextColor(192, 57, 43); else if (it[0] === 'l' || it[0] === 'ls') doc.setTextColor(30, 132, 73); else doc.setTextColor(fuerte ? 20 : 90, fuerte ? 30 : 104, fuerte ? 25 : 97);
           doc.text(txtCorto(doc, it[1], cw - 4), x + 2, y);
           y += fuerte ? lh : lh + 1.2;
         }

@@ -2799,3 +2799,30 @@
 .ag-dd--llego { background: var(--k-ok-fondo); color: var(--k-ok); }
 @media (max-width: 899px) { .ag-celda__n { position: static; align-self: flex-start; } }
 @media (max-width: 520px) { .ag-modo { padding: 8px 8px; font-size: .84rem; } .ag-celda { padding: 3px; min-height: 58px; } .ag-fila { justify-content: center; } .ag-nav { width: 100%; justify-content: space-between; } .ag-nav__t { flex: 1; text-align: center; font-size: .92rem; } }
+/* 17/10 · EN ROJO lo que no llegó en su día (x.atraso 1) y lo vencido (2) */
+.ag-cifras { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.ag-cifra--malo { cursor: pointer; }
+.ag-cifra--malo b, .ag-cifra--malo span { color: var(--k-malo); }
+@media (max-width: 620px) { .ag-cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.ag-celda__t { position: absolute; top: 4px; right: 5px; font: 600 .66rem var(--k-fuente); color: var(--k-malo); white-space: nowrap; }
+.ag-celda__t:empty { display: none; }
+.ag-celda__t b { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 4px; border-radius: var(--k-r-pill); background: var(--k-malo); color: #fff; font-size: .7rem; }
+.ag-celda__t em { font-style: normal; display: none; }
+.ag-celda__n:not(:empty) ~ .ag-celda__t { top: 25px; }
+.ag-celda--tarde { border-color: var(--k-malo); box-shadow: inset 0 0 0 1px var(--k-malo); background: linear-gradient(var(--k-malo-fondo), var(--k-malo-fondo)), var(--k-papel); }
+.ag-celda__q .ag-r { color: var(--k-malo); font-weight: 700; }
+.ag-ley__r { display: inline-block; width: 12px; height: 12px; border-radius: 4px; background: var(--k-malo); }
+.ag-sem__dia--tarde { border-top: 3px solid var(--k-malo); }
+.ag-mini--tarde { border-left-color: var(--k-malo); background: var(--k-malo-fondo); }
+.ag-mini--tarde span { color: var(--k-malo); font-weight: 600; }
+.ag-mini--vencida { border-left-width: 5px; }
+.ag-tar--tarde { border-left: 4px solid var(--k-malo); }
+.ag-tar--vencida { border-left-width: 7px; }
+.ag-dd--tarde { background: var(--k-malo-fondo); color: var(--k-malo); }
+.ag-tarde { display: flex; gap: 6px; align-items: flex-start; margin: 0; padding: 6px 8px; border-radius: var(--k-r-sm); background: var(--k-malo-fondo); color: var(--k-malo); font: 600 .8rem/1.35 var(--k-fuente); }
+.ag-tarde svg { flex: 0 0 auto; margin-top: 2px; }
+.ag-t--malo { color: var(--k-malo); }
+.ag-g--tarde { border-left: 4px solid var(--k-malo); }
+.ag-g--tarde .ag-g__v { color: var(--k-malo); }
+@media (min-width: 900px) { .ag-celda__t em { display: inline; } }
+@media (max-width: 899px) { .ag-celda__t { position: static; align-self: flex-start; } }
