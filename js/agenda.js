@@ -778,7 +778,111 @@
     h.pie(); guardarPDF(doc);
   }
 
+  /* ══════════════ 17/10 · AYUDA DE LA VISTA (guía + preguntas rápidas) ══════════════
+     La usan los js/ayuda.js de las tres apps (GUIAS.agenda). Todo se calcula
+     en el teléfono con lo que ya llegó: ninguna pregunta va al servidor y
+     todas respetan los filtros que tenga puestos la persona. */
+
+  function hayFiltro() { return !!(F.buscar || F.sup || F.sec); }
+  function conFiltro() { return hayFiltro() ? ' (con los filtros que tienes puestos)' : ''; }
+  function lista(l, fmt, max) {
+    max = max || 8;
+    var t = l.slice(0, max).map(fmt).join('\n');
+    if (l.length > max) t += '\n… y ' + (l.length - max) + ' más.';
+    return t;
+  }
+  function ayuda() {
+    var MODO_T = { mes: 'Mes', semana: 'Semana', dia: 'Día', cortes: 'Cortes', lista: 'Lista' };
+    var t = '';
+    if (!D) t = 'Aquí ves **qué días te llega cuánto trabajo y de quiénes**. Espera un momento mientras se arma tu agenda. ';
+    else {
+      var rojas = filtradas().filter(tarde), venc = rojas.filter(vencida);
+      t = 'Aquí ves **qué días te llega cuánto trabajo y de quiénes**, desde hoy hasta el ' + corta(D.hasta) + '. Cada cuenta va en su **día probable**: el fin de su periodo más lo que esa persona suele tardar en presentarla. ';
+      t += 'Cámbiala entre **Mes, Semana, Día, Cortes y Lista**; muévete con las **flechas** y vuelve con **Hoy**. Estás en **' + (MODO_T[V.modo] || 'Mes') + '**. ';
+      t += rojas.length
+        ? '**' + rojas.length + (rojas.length === 1 ? ' cuenta no llegó en su día** y sale' : ' cuentas no llegaron en su día** y salen') + ' **en rojo**' + (venc.length ? ' (' + venc.length + ' ya con el **plazo vencido**, en rojo fuerte)' : '') + ': toca la cifra roja **' + (rojas.length === 1 ? 'No ha llegado en su día' : 'No han llegado en su día') + '** para ' + (rojas.length === 1 ? 'verla' : 'verlas') + ' en lista. '
+        : 'Ninguna cuenta se ha quedado sin llegar en su día. ✓ ';
+      t += '**Imprimir** baja en PDF lo que estás viendo y **Excel** lo pasa a una hoja. Solo consulta: no cambia nada.';
+    }
+    function noHay() { return D ? '' : 'Todavía está cargando la agenda.'; }
+    return {
+      guia: t,
+      botones: [
+        { texto: '¿Cuántas no han llegado en su día?', responde: function () {
+            if (!D) return noHay();
+            var r = filtradas().filter(tarde).sort(function (a, b) { return (+b.atraso) - (+a.atraso) || aFecha(a.probable) - aFecha(b.probable); });
+            if (!r.length) return 'Ninguna' + conFiltro() + '. Todas las cuentas esperadas hasta hoy ya llegaron o todavía están a tiempo. ✓';
+            var v = r.filter(vencida).length;
+            return '**' + r.length + '**' + conFiltro() + (v ? ', **' + v + ' con el plazo vencido** (también están en CUENTAS ATRASADAS)' : '') + ':\n' +
+              lista(r, function (x) { return '· **' + nombre(x.nombre) + '** — cuenta ' + x.informe + ' de ' + x.total + ' · ' + (vencida(x) ? 'plazo vencido el ' + corta(x.limite) : 'se esperaba el ' + corta(x.probable) + ', tiene hasta el ' + corta(x.limite)); }, 8);
+          } },
+        { texto: '¿Quiénes llegan esta semana?', responde: function () {
+            if (!D) return noHay();
+            /* sábado o domingo: lo que importa ya es la semana que viene */
+            var h = hoy(), prox = finde(h), l = prox ? mas(lunes(h), 7) : lunes(h), f = mas(l, 6);
+            if (prox) h = l;
+            var s = filtradas().filter(function (x) { var p = aFecha(x.probable); return !tarde(x) && p && p >= h && p <= f; })
+              .sort(function (a, b) { return aFecha(a.probable) - aFecha(b.probable) || (a.nombre < b.nombre ? -1 : 1); });
+            if (!s.length) return (prox ? 'La semana que viene (' : 'Lo que queda de esta semana (') + rangoSem(l) + ') no trae cuentas por llegar' + conFiltro() + '.';
+            var m = {}, orden = [];
+            s.forEach(function (x) { if (!m[x.probable]) { m[x.probable] = []; orden.push(x.probable); } m[x.probable].push(x); });
+            return '**' + cuentas(s.length) + '** por llegar ' + (prox ? 'la semana que viene (' + rangoSem(l) + ')' : 'de aquí al domingo') + conFiltro() + ':\n' + orden.map(function (k) {
+              return '· **' + cap(larga(k)) + '** (' + m[k].length + '): ' + m[k].slice(0, 4).map(function (x) { return nombre(x.nombre); }).join(', ') + (m[k].length > 4 ? ' y ' + (m[k].length - 4) + ' más' : '');
+            }).join('\n');
+          } },
+        { texto: '¿Qué día llega más trabajo?', responde: function () {
+            if (!D) return noHay();
+            var h = hoy(), n = {};
+            filtradas().forEach(function (x) { var p = aFecha(x.probable); if (!tarde(x) && p && p >= h) n[x.probable] = (n[x.probable] || 0) + 1; });
+            var k = Object.keys(n).sort(function (a, b) { return n[b] - n[a] || aFecha(a) - aFecha(b); });
+            if (!k.length) return 'No hay cuentas por llegar' + conFiltro() + '.';
+            return 'Los días más cargados' + conFiltro() + ':\n' + k.slice(0, 5).map(function (d) { return '· **' + cap(larga(d)) + '**: ' + cuentas(n[d]); }).join('\n') +
+              '\nÁbrelos en la vista **Día** para ver quiénes son.';
+          } },
+        { texto: '¿Cuántas ya llegaron este mes?', responde: function () {
+            if (!D) return noHay();
+            if (!D.llego) return 'Esta versión del servidor todavía no trae lo que ya llegó.';
+            var l = llegadasF();
+            if (!l.length) return 'En ' + MESES[hoy().getMonth()] + ' todavía no ha llegado ninguna cuenta' + conFiltro() + '.';
+            var m = {};
+            l.forEach(function (x) { var k = secNombre(x.sec) || 'Sin secretaría'; m[k] = (m[k] || 0) + 1; });
+            return '**' + cuentas(l.length) + '** llegaron en ' + MESES[hoy().getMonth()] + conFiltro() + ':\n' +
+              Object.keys(m).sort(function (a, b) { return m[b] - m[a]; }).map(function (k) { return '· **' + k + '**: ' + m[k]; }).join('\n') +
+              '\nEn el calendario salen en verde en el día que llegaron.';
+          } },
+        { texto: '¿Qué tengo hoy en la bandeja?', responde: function () {
+            if (!D) return noHay();
+            var l = hoyLista();
+            if (!l.length) return 'Nada esperando revisión ahora mismo. ✓';
+            var n = {};
+            l.forEach(function (x) { var k = ESTADO_HOY[x.estado] || estadoTxt(x.estado); n[k] = (n[k] || 0) + 1; });
+            return '**' + cuentas(l.length) + '** esperando revisión hoy:\n' + Object.keys(n).map(function (k) { return '· **' + k + '**: ' + n[k]; }).join('\n');
+          } },
+        { texto: '¿Quién suele tardar más en presentar?', responde: function () {
+            if (!D) return noHay();
+            var vistos = {}, l = [];
+            filtradas().forEach(function (x) { if (x.hist && !vistos[x.id]) { vistos[x.id] = 1; l.push(x); } });
+            if (!l.length) return 'Todavía no hay historia suficiente para saberlo' + conFiltro() + '.';
+            l.sort(function (a, b) { return (+b.lag) - (+a.lag) || (a.nombre < b.nombre ? -1 : 1); });
+            return 'Lo que suelen tardar después de cerrar su periodo' + conFiltro() + ':\n' +
+              lista(l, function (x) { return '· **' + nombre(x.nombre) + '** — ' + habiles(+x.lag) + ' (de ' + x.hist + (x.hist === 1 ? ' cuenta' : ' cuentas') + ')'; }, 6) +
+              '\nEl plazo para presentar es de ' + habiles(D.dias || 5) + '.';
+          } },
+        { texto: '¿Por qué una cuenta sale en rojo?', responde: function () {
+            return '**Rojo**: ya pasó su día probable y la cuenta todavía no ha llegado, pero sigue dentro del plazo. Se queda pintada en el día en que se esperaba.\n' +
+              '**Rojo fuerte · plazo vencido**: además se le venció el plazo de ' + habiles((D && D.dias) || 5) + ' después del fin del periodo; por eso también aparece en **CUENTAS ATRASADAS**.\n' +
+              'En los días que ya pasaron del mes, lo **verde** es lo que de verdad llegó ese día.';
+          } },
+        { texto: '¿Cómo la imprimo o la paso a Excel?', responde: function () {
+            return 'Elige la vista (Mes, Semana, Día, Cortes o Lista), el periodo con las flechas y, si quieres, un supervisor o una secretaría. Luego toca **Imprimir** (PDF; mes y semana salen en hoja horizontal) o **Excel**. ' +
+              'Sale **exactamente lo que estás viendo**, con los mismos filtros. Los filtros y la vista se mantienen aunque cambies de periodo.';
+          } }
+      ]
+    };
+  }
+
   window.AGENDA = {
+    ayuda: ayuda,
     configurar: function (c) { C = c || {}; },
     vista: vista,
     olvidar: function () { D = null; F = { buscar: '', sup: '', sec: '' }; V = { modo: '', ref: null, dia: '', lista: 'vienen' }; },

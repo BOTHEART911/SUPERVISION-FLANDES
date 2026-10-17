@@ -502,10 +502,18 @@
     };
   };
 
+  /* 17/10 · AGENDA DE REVISIÓN: la guía y las preguntas viven en js/agenda.js
+     (el mismo archivo en SUPERVISIÓN, CONTRATACIÓN y ADMIN) */
+  GUIAS.agenda = function () {
+    return window.AGENDA && window.AGENDA.ayuda ? window.AGENDA.ayuda()
+      : { guia: 'Aquí ves qué días te llega cuánto trabajo y de quiénes.', botones: [] };
+  };
+
   var TITULOS = { inicio: 'Tu inicio', misregistros: 'Mis registros', atrasos: 'Cuentas atrasadas', revisar: 'Cuentas de mi supervisión', cuenta: 'Revisión de cuenta', comunicaciones: 'Solicitud a Comunicaciones',
                   contratistas: 'Contratistas', contratista: 'Ficha del contratista', informe: 'Informe de cuentas',
                   firmados: 'Informes firmados', reporte: 'Reporte de Supervisión', requerimientos: 'Requerimientos',
                   comunicados: 'Comunicados', directorio: 'Directorio institucional', drive: 'Drive de Hacienda', perfil: 'Mi firma y mi foto' };
+  TITULOS.agenda = 'Agenda de revisión';
 
   function montar(vista, extra) {
     if (!K.piezas.insights) return;
