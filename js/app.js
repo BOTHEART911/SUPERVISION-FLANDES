@@ -56,7 +56,7 @@
    */
   function leer(accion, datos, veces) {
     return K.pedir(accion, datos || {}, { ms: 60000 })['catch'](function (e) {
-      var red = e && (e.codigo === 'RESPUESTA_NO_JSON' || e.codigo === 'SIN_RED' || e.codigo === 'TIEMPO');
+      var red = e && (e.codigo === 'RESPUESTA_NO_JSON' || e.codigo === 'SIN_RED' || e.codigo === 'TIEMPO' || e.codigo === 'SERVIDOR' || e.codigo === 'RED_LENTA');
       if (red && (veces || 0) < 1) return leer(accion, datos, (veces || 0) + 1);
       throw e;
     });
