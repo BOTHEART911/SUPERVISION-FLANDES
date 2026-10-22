@@ -2826,3 +2826,20 @@
 .ag-g--tarde .ag-g__v { color: var(--k-malo); }
 @media (min-width: 900px) { .ag-celda__t em { display: inline; } }
 @media (max-width: 899px) { .ag-celda__t { position: static; align-self: flex-start; } }
+
+/* ── 21/10 · Recordatorios al contratista (pastilla INGRESADAS, devueltas, incompletas y atrasadas) ── */
+.rc-ing, .rc-plazo {
+  margin: 8px 0 0; display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px;
+  border-radius: var(--k-r-md); font: 400 .82rem/1.45 var(--k-fuente); overflow-wrap: anywhere;
+}
+.rc-ing { background: var(--k-aviso-fondo); color: var(--k-tinta); }
+.rc-plazo { background: rgba(var(--k-marca-rgb), .06); color: var(--k-tinta-2); }
+.rc-plazo--malo { background: var(--k-malo-fondo); color: var(--k-tinta); }
+.rc-plazo--malo b { color: var(--k-malo); }
+.rc-ing svg, .rc-plazo svg { flex: none; margin-top: 2px; }
+.rc-rec { display: inline-flex; }
+.rc-btn { white-space: nowrap; }
+.rc-hecho { display: inline-flex; gap: 4px; align-items: center; background: var(--k-ok-fondo); color: var(--k-ok); border-color: transparent; white-space: normal; }
+.rc-hecho--malo { background: var(--k-malo-fondo); color: var(--k-malo); }
+:root[data-tema="oscuro"] .rc-hecho { color: var(--k-ok); }
+:root[data-tema="oscuro"] .rc-hecho--malo { color: var(--k-malo); }

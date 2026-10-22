@@ -141,6 +141,8 @@
       t.appendChild(chips);
 
       var acc = K.nodo('<div class="at-tar__acc"></div>');
+      /* 'recordado' llega solo con el CORE del 21/10: sin él no se pinta (front y CORE se suben en cualquier orden) */
+      if (Object.prototype.hasOwnProperty.call(x, 'recordado')) acc.appendChild(botonRecordar(x));
       var bC = K.nodo('<button type="button" class="kit-btn kit-btn--plano at-mini">' + K.icono('compartir', 15) + ' Compartir</button>');
       bC.addEventListener('click', function () { compartir([x], true, bC); });
       acc.appendChild(bC);
@@ -155,6 +157,43 @@
       t.appendChild(acc);
     }
     return t;
+  }
+
+  /* ══════════════ 21/10 · RECORDAR (al contratista, por push, WhatsApp y correo) ══════════════
+     Le recuerda su cuenta o cuentas atrasadas con los días de cada una. En
+     SUPERVISIÓN sale a nombre del supervisor del contrato; en ADMIN, a nombre
+     de la oficina (llave RECORDAR de CONFIG). Uno por contrato al día: el
+     CORE lo comprueba con candado y deja el aviso en cola (sale en minutos).
+     La plantilla RECORDAR_ATRASO se edita en ADMIN › Configuración › Avisos. */
+  function botonRecordar(x) {
+    var caja = K.nodo('<span class="rc-rec"></span>');
+    function pintarRec() {
+      caja.innerHTML = '';
+      var r = x.recordado;
+      if (r) {
+        var m = K.nodo('<span class="ct-marca rc-hecho' + (r.estado === 'FALLO' ? ' rc-hecho--malo' : '') + '">' + K.icono(r.estado === 'FALLO' ? 'aviso' : 'check', 12) + ' </span>');
+        m.appendChild(document.createTextNode('Recordado hoy ' + r.hora + (r.por ? ' · ' + nombre(r.por) : '') +
+          (r.estado === 'ENVIADO' ? ' · enviado' : (r.estado === 'FALLO' ? ' · no salió' : ' · sale en minutos'))));
+        caja.appendChild(m);
+        return;
+      }
+      var b = K.nodo('<button type="button" class="kit-btn kit-btn--marca at-mini">' + K.icono('campana', 15) + ' Recordar</button>');
+      b.title = 'Le recuerda al contratista ' + (x.pendientes > 1 ? 'sus ' + x.pendientes + ' cuentas atrasadas' : 'su cuenta atrasada') + ', con los días de cada una';
+      b.addEventListener('click', K.piezas.antidoble.una(function () {
+        K.vibrar(8);
+        return K.pedir('recordarAtraso', { id: x.id }, { ms: 45000 }).then(function (r) {
+          x.recordado = r.recordado;
+          var n = (r.cuentas || []).length || x.pendientes || 1;
+          K.aviso('Listo: a ' + nombre(x.nombre) + ' le llega en los próximos minutos el recordatorio de ' + (n === 1 ? 'su cuenta atrasada' : 'sus ' + n + ' cuentas atrasadas') + '.', 'ok', 6000);
+        }, function (e) {
+          if (e && e.datos && e.datos.recordado) x.recordado = e.datos.recordado;
+          K.aviso((e && e.message) || 'No se pudo dejar el recordatorio.', e && e.codigo === 'YA_RECORDADO' ? 'info' : 'malo', 7000);
+        }).then(pintarRec);
+      }));
+      caja.appendChild(b);
+    }
+    pintarRec();
+    return caja;
   }
 
   function chip(texto, t) {
@@ -205,7 +244,8 @@
     C.app.appendChild(caja);
     window.OFICINA.cabecera(caja, 'vencido', 'CUENTAS ATRASADAS',
       'El contratista presenta la cuenta al supervisor dentro de los <b>días hábiles</b> siguientes al fin del periodo (sin fines de semana ni festivos). ' +
-      'Si no, aparece aquí. <b>Compartir</b> abre el compartir de tu teléfono o computador con la lista escrita: tú escoges el chat, el grupo o el correo.');
+      'Si no, aparece aquí. <b>Recordar</b> le avisa al contratista (push, WhatsApp o correo) su cuenta o cuentas atrasadas con los días de cada una; uno por día. ' +
+      '<b>Compartir</b> abre el compartir de tu teléfono o computador con la lista escrita: tú escoges el chat, el grupo o el correo.');
     zona = K.nodo('<div class="at-zona"></div>');
     caja.appendChild(zona);
     K.piezas.creditos.montar(caja);

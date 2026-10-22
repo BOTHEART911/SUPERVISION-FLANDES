@@ -96,8 +96,9 @@
 
     revisar: function () {
       return {
-        guia: 'Aquí están las cuentas en trámite de tu supervisión, de la más antigua a la más nueva. Filtra por **estado** (por revisar, plan de pagos, en Contratación, devueltas, incompletas, aprobadas), por **cómo va la revisión** ' +
-              '(sin abrir, en revisión, visto bueno, con inconsistencia) y por secretaría. El botón de descarga saca la lista en **Excel** (una fila por cuenta) o en **PDF** (un informe por bloques).',
+        guia: 'Aquí están las cuentas en trámite de tu supervisión, de la más antigua a la más nueva. Filtra por **estado** (por revisar, plan de pagos, en Contratación, devueltas, incompletas, aprobadas e **ingresadas**: las que el contratista ya corrigió pero no ha reportado), por **cómo va la revisión** ' +
+              '(sin abrir, en revisión, visto bueno, con inconsistencia) y por secretaría. En **Ingresadas** cada tarjeta trae **Recordar reporte**, y en **Devueltas** e **Incompletas**, **Recordar corrección**: le llega al contratista a tu nombre, con los días que lleva vencida la cuenta o los que le quedan (uno por cuenta al día). ' +
+              'El botón de descarga saca la lista en **Excel** (una fila por cuenta) o en **PDF** (un informe por bloques).',
         botones: [
           { texto: '¿Qué estoy viendo?', responde: function () {
               var v = RV() ? RV()._visibles() : [];
@@ -118,6 +119,15 @@
               return listaCorta(c, function (x) {
                 return '· **' + nombre(x.nombre) + '** (' + x.estado.toLowerCase() + ', cuenta ' + x.informe + ')' + (x.observacion ? ': «' + x.observacion.slice(0, 120) + '»' : '');
               }, 6);
+            } },
+          { texto: '¿A quién le debo recordar?', responde: function () {
+              var c = cuentas().filter(function (x) { return x.rec && !x.rec.recordado; });
+              if (!c.length) return 'A nadie: no hay cuentas devueltas, incompletas o corregidas sin reportar pendientes de recordatorio hoy.';
+              c.sort(function (a, b) { return (b.rec.vencida ? b.rec.dias : -b.rec.dias) - (a.rec.vencida ? a.rec.dias : -a.rec.dias); });
+              return 'Sin recordatorio hoy, de la más vencida a la que tiene más plazo:\n' + listaCorta(c, function (x) {
+                return '· **' + nombre(x.nombre) + '** — cuenta ' + x.informe + ' ' + (x.estado === 'INGRESADA' ? 'corregida sin reportar' : x.estado.toLowerCase()) +
+                  (x.rec.limite ? (x.rec.vencida ? ', lleva ' + x.rec.dias + ' días hábiles vencida' : ', le quedan ' + x.rec.dias + ' días hábiles') : '');
+              }, 8);
             } },
           { texto: '¿Qué falta en plan de pagos?', responde: function () {
               var c = porEstado('PLAN DE PAGOS');
@@ -445,6 +455,7 @@
       var v = 0; l.forEach(function (x) { v += x.pendientes || 1; });
       t = '**' + l.length + '** ' + (l.length === 1 ? 'contratista tiene' : 'contratistas tienen') + ' la cuenta atrasada (**' + v + '** ' + (v === 1 ? 'cuenta vencida' : 'cuentas vencidas') + ' sin presentar). ' +
           'La regla: presentar al supervisor dentro de **' + (d.dias || 5) + ' días hábiles** después del fin del periodo, sin fines de semana ni festivos. ' +
+          '**Recordar** le avisa al contratista, a tu nombre (el del supervisor del contrato), su cuenta o cuentas atrasadas con los días hábiles de cada una, por push, WhatsApp o correo según su canal: uno por contrato al día y sale en los minutos siguientes. ' +
           '**Compartir** abre el compartir de tu teléfono o computador con la lista escrita: tú escoges el chat, el grupo o el correo.';
     }
     if (d && d.cfg && d.cfg.push) t += ' El aviso push al contratista está **' + (d.cfg.push.activo ? 'ENCENDIDO' : 'APAGADO') + '**' + (d.porAvisar ? ' y ' + d.porAvisar + ' atrasados aún no lo tienen' : '') + '.';

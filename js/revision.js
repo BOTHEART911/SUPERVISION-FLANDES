@@ -57,14 +57,16 @@
     { v: 'REVISADA POR SUPERVISOR', t: 'En Contratación' },
     { v: 'APROBADA', t: 'Aprobadas' },
     { v: 'DEVUELTA', t: 'Devueltas', tono: 'malo' },
-    { v: 'INCOMPLETA', t: 'Incompletas', tono: 'malo' }
+    { v: 'INCOMPLETA', t: 'Incompletas', tono: 'malo' },
+    /* 21/10 · la que fue devuelta o incompleta, el contratista la corrigió (INGRESADA) y no la ha reportado */
+    { v: 'INGRESADA', t: 'Ingresadas', tono: 'aviso' }
   ];
   function estadoTexto(e) {
     var x = ESTADOS.filter(function (y) { return y.v === e; })[0];
     return x ? (x.v === 'REPORTADA' ? 'POR REVISAR' : x.v === 'REVISADA POR SUPERVISOR' ? 'EN CONTRATACIÓN' : x.v) : e;
   }
   function estadoTono(e) {
-    if (e === 'REPORTADA') return 'aviso';
+    if (e === 'REPORTADA' || e === 'INGRESADA') return 'aviso';
     if (e === 'PLAN DE PAGOS' || e === 'APROBADA') return 'ok';
     if (e === 'DEVUELTA' || e === 'INCOMPLETA') return 'malo';
     return '';
@@ -372,6 +374,10 @@
       ob.appendChild(document.createTextNode(c.observacion));
       t.appendChild(ob);
     }
+    if (c.estado === 'INGRESADA') {
+      t.appendChild(K.nodo('<p class="rc-ing">' + K.icono('info', 14) + '<span>La corrigió y la guardó, pero <b>no la ha reportado</b>: por eso todavía no llega a tu revisión.</span></p>'));
+    }
+    if (c.rec) t.appendChild(lineaPlazo(c.rec));
     if (c.concepto) t.appendChild(lineaConcepto(c.concepto));
     if (c.revision) {
       t.appendChild(K.nodo('<p class="rv-encurso">' + K.icono('reloj', 14) + '<span>En revisión por <b>' + K.esc(nombre(c.revision.por)) +
@@ -387,8 +393,65 @@
       ' ct-acc__ver">' + K.icono(c.estado === 'PLAN DE PAGOS' ? 'documento' : 'buscar', 16) + txtVer + '</button>');
     ver.addEventListener('click', function () { K.vibrar(8); C.irA('cuenta/' + c.fila + '/' + encodeURIComponent(c.id) + '/' + c.informe); });
     a.appendChild(ver);
+    if (c.rec) a.appendChild(botonRecordar(c));
     t.appendChild(a);
     return t;
+  }
+
+  /* ══════════════ 21/10 · RECORDAR REPORTE / RECORDAR CORRECCIÓN ══════════════
+     El plazo es el de CUENTAS ATRASADAS: N días hábiles después del fin del
+     periodo de la cuenta. Llega con la lista (rec), sin otro viaje. El aviso
+     sale a nombre del supervisor del contrato, por push, WhatsApp y correo
+     (según el canal de la persona), con la plantilla que se edita en ADMIN.
+     Uno por cuenta al día: el CORE lo comprueba con candado; aquí el botón
+     queda ocupado (y la pantalla con escudo) desde el primer toque. */
+
+  function lineaPlazo(r) {
+    if (!r || !r.limite) return K.nodo('<span hidden></span>');
+    var txt = r.vencida
+      ? 'Vencida: lleva <b>' + r.dias + (r.dias === 1 ? ' día hábil' : ' días hábiles') + '</b> (el plazo era hasta el ' + K.esc(r.limite) + ')'
+      : (r.dias ? 'Plazo hasta el <b>' + K.esc(r.limite) + '</b> · le ' + (r.dias === 1 ? 'queda 1 día hábil' : 'quedan ' + r.dias + ' días hábiles')
+                : 'El plazo <b>vence hoy</b> (' + K.esc(r.limite) + ')');
+    return K.nodo('<p class="rc-plazo' + (r.vencida ? ' rc-plazo--malo' : '') + '">' + K.icono(r.vencida ? 'vencido' : 'reloj', 14) + '<span>' + txt + '</span></p>');
+  }
+
+  function textoRecordado(r) {
+    return 'Recordado hoy ' + r.hora + (r.por ? ' · ' + nombre(r.por) : '') +
+      (r.estado === 'ENVIADO' ? ' · enviado' : (r.estado === 'FALLO' ? ' · no salió' : ' · sale en minutos'));
+  }
+
+  function botonRecordar(c) {
+    var caja = K.nodo('<span class="rc-rec"></span>');
+    function pintarRec() {
+      caja.innerHTML = '';
+      var r = c.rec.recordado;
+      if (r) {
+        var m = K.nodo('<span class="ct-marca rc-hecho' + (r.estado === 'FALLO' ? ' rc-hecho--malo' : '') + '">' + K.icono(r.estado === 'FALLO' ? 'aviso' : 'check', 12) + ' </span>');
+        m.appendChild(document.createTextNode(textoRecordado(r)));
+        caja.appendChild(m);
+        return;
+      }
+      var b = K.nodo('<button type="button" class="kit-btn kit-btn--plano rc-btn">' + K.icono('campana', 16) +
+        (c.rec.tipo === 'REPORTE' ? ' Recordar reporte' : ' Recordar corrección') + '</button>');
+      b.addEventListener('click', K.piezas.antidoble.una(function () {
+        K.vibrar(8);
+        return recordarCuenta(c).then(pintarRec);
+      }));
+      caja.appendChild(b);
+    }
+    pintarRec();
+    return caja;
+  }
+
+  /** Un viaje; tras responder se parcha la fila en memoria (no se recarga la lista). */
+  function recordarCuenta(c) {
+    return K.pedir('recordarCuenta', { fila: c.fila, id: c.id, informe: c.informe, tipo: c.rec.tipo }, { ms: 45000 }).then(function (r) {
+      c.rec.recordado = r.recordado;
+      K.aviso('Listo: el recordatorio le llega a ' + nombre(c.nombre) + ' en los próximos minutos, a nombre de ' + nombre(c.sup || '') + '.', 'ok', 6000);
+    }, function (e) {
+      if (e && e.datos && e.datos.recordado) c.rec.recordado = e.datos.recordado;
+      K.aviso((e && e.message) || 'No se pudo dejar el recordatorio.', e && e.codigo === 'YA_RECORDADO' ? 'info' : 'malo', 7000);
+    });
   }
 
   /* ══════════════ el detalle ══════════════ */
