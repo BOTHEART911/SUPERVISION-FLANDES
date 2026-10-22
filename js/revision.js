@@ -401,7 +401,7 @@
   /* ══════════════ 21/10 · RECORDAR REPORTE / RECORDAR CORRECCIÓN ══════════════
      El plazo es el de CUENTAS ATRASADAS: N días hábiles después del fin del
      periodo de la cuenta. Llega con la lista (rec), sin otro viaje. El aviso
-     sale a nombre del supervisor del contrato, por push, WhatsApp y correo
+     sale a nombre del supervisor del contrato, por push y WhatsApp
      (según el canal de la persona), con la plantilla que se edita en ADMIN.
      Uno por cuenta al día: el CORE lo comprueba con candado; aquí el botón
      queda ocupado (y la pantalla con escudo) desde el primer toque. */

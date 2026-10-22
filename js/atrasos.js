@@ -159,7 +159,7 @@
     return t;
   }
 
-  /* ══════════════ 21/10 · RECORDAR (al contratista, por push, WhatsApp y correo) ══════════════
+  /* ══════════════ 21/10 · RECORDAR (al contratista, por push y WhatsApp) ══════════════
      Le recuerda su cuenta o cuentas atrasadas con los días de cada una. En
      SUPERVISIÓN sale a nombre del supervisor del contrato; en ADMIN, a nombre
      de la oficina (llave RECORDAR de CONFIG). Uno por contrato al día: el
@@ -244,7 +244,7 @@
     C.app.appendChild(caja);
     window.OFICINA.cabecera(caja, 'vencido', 'CUENTAS ATRASADAS',
       'El contratista presenta la cuenta al supervisor dentro de los <b>días hábiles</b> siguientes al fin del periodo (sin fines de semana ni festivos). ' +
-      'Si no, aparece aquí. <b>Recordar</b> le avisa al contratista (push, WhatsApp o correo) su cuenta o cuentas atrasadas con los días de cada una; uno por día. ' +
+      'Si no, aparece aquí. <b>Recordar</b> le avisa al contratista (push y WhatsApp) su cuenta o cuentas atrasadas con los días de cada una; uno por día. ' +
       '<b>Compartir</b> abre el compartir de tu teléfono o computador con la lista escrita: tú escoges el chat, el grupo o el correo.');
     zona = K.nodo('<div class="at-zona"></div>');
     caja.appendChild(zona);

@@ -455,7 +455,7 @@
       var v = 0; l.forEach(function (x) { v += x.pendientes || 1; });
       t = '**' + l.length + '** ' + (l.length === 1 ? 'contratista tiene' : 'contratistas tienen') + ' la cuenta atrasada (**' + v + '** ' + (v === 1 ? 'cuenta vencida' : 'cuentas vencidas') + ' sin presentar). ' +
           'La regla: presentar al supervisor dentro de **' + (d.dias || 5) + ' días hábiles** después del fin del periodo, sin fines de semana ni festivos. ' +
-          '**Recordar** le avisa al contratista, a tu nombre (el del supervisor del contrato), su cuenta o cuentas atrasadas con los días hábiles de cada una, por push, WhatsApp o correo según su canal: uno por contrato al día y sale en los minutos siguientes. ' +
+          '**Recordar** le avisa al contratista, a tu nombre (el del supervisor del contrato), su cuenta o cuentas atrasadas con los días hábiles de cada una, por push y WhatsApp: uno por contrato al día y sale en los minutos siguientes. ' +
           '**Compartir** abre el compartir de tu teléfono o computador con la lista escrita: tú escoges el chat, el grupo o el correo.';
     }
     if (d && d.cfg && d.cfg.push) t += ' El aviso push al contratista está **' + (d.cfg.push.activo ? 'ENCENDIDO' : 'APAGADO') + '**' + (d.porAvisar ? ' y ' + d.porAvisar + ' atrasados aún no lo tienen' : '') + '.';
