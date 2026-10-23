@@ -920,10 +920,21 @@
 
   /** Todos los documentos: los de las columnas de la cuenta + los de la carpeta. */
   /* 05/10 · los archivos de evidencia por obligación (vienen en el detalle) */
-  function archivosObl() {
-    return ((D && D.obligaciones) || []).filter(function (o) { return o.archivo && o.archivo.id; })
-      .map(function (o) { var a = o.archivo; a.n = o.n; return a; });
+  /* 23/10 · hasta 5 por obligación (archivo.todos); un CORE de antes manda uno */
+  function adjuntosDe(o) {
+    var a = o && o.archivo;
+    if (!a || !a.id) return [];
+    var l = Object.prototype.toString.call(a.todos) === '[object Array]' && a.todos.length ? a.todos : [a];
+    return l.filter(function (x) { return x && x.id; }).map(function (x, k) { x.n = o.n; x.k = k + 1; return x; });
   }
+  function archivosObl() {
+    var out = [];
+    ((D && D.obligaciones) || []).forEach(function (o) { adjuntosDe(o).forEach(function (a) { out.push(a); }); });
+    return out;
+  }
+  /* "1.2" del nombre que le puso el CORE (o el que le toca por su lugar) */
+  function numAdj(a) { var m = /^\s*(\d+\.\d+)\.\s/.exec(a.nombre || ''); return m ? m[1] : a.n + '.' + a.k; }
+  function sinNumAdj(nombre) { return String(nombre || '').replace(/^\s*\d+\.\d+\.\s+/, ''); }
 
   function todosLosDocs() {
     var vistos = {}, out = [];
@@ -974,10 +985,11 @@
   /* 05/10 · el visor recibe los archivos de TODAS las obligaciones y se abre
      en el tocado: si ya estaba abierto o minimizado, se restaura y cambia de
      documento sin moverse. Precargados, abren sin esperar al servidor. */
-  function abrirArchivoObl(n) {
+  function abrirArchivoObl(n, id) {
     var lista = archivosObl();
-    var i = 0;
-    lista.forEach(function (a, j) { if (a.n === n) i = j; });
+    var i = -1;
+    lista.forEach(function (a, j) { if (i < 0 && a.n === n && (!id || a.id === id)) i = j; });
+    if (i < 0) i = 0;
     if (!K.piezas.visor) return;
     /* 05/10 noche · directo de Drive: PDF por la llave (adelantado), Word y
        Excel pintados en el teléfono. Nunca pasa por Apps Script. */
@@ -1263,18 +1275,26 @@
     if (ev.length) tira.appendChild(fotos);
     t.appendChild(tira);
 
-    /* 05/10 · ARCHIVO DE EVIDENCIA DEL CUMPLIMIENTO (uno por obligación) */
-    if (o.archivo && o.archivo.id) {
-      var ar = o.archivo, ext = String(ar.ext || '').toLowerCase();
-      var ico = ext === 'pdf' ? 'pdf' : (ext === 'xls' || ext === 'xlsx') ? 'hoja' : 'documento';
-      var queEs = ext === 'pdf' ? 'PDF' : (ext === 'xls' || ext === 'xlsx') ? 'Excel' : 'Word';
-      var fa = K.nodo('<div class="rv-arch"><p class="rv-obl__et">Archivo de evidencia</p>' +
-        '<button type="button" class="ins-doc rv-arch__b" aria-label="Ver el archivo de evidencia de la obligación ' + o.n + '">' +
-        '<span class="ins-doc__ico">' + K.icono(ico, 20) + '</span>' +
-        '<span class="ins-doc__txt"><b>' + K.esc(ar.nombre) + '</b><small>' + queEs + ' · toca para verlo</small></span></button></div>');
-      fa.querySelector('button').addEventListener('click', function () {
-        B.posicion.obligacion = o.n;
-        abrirArchivoObl(o.n);
+    /* 05/10 · ARCHIVOS DE EVIDENCIA DEL CUMPLIMIENTO · 23/10 hasta 5 por obligación:
+       una pastilla por adjunto (1.1, 1.2…); todos van al mismo visor, ya precargados */
+    var adjs = adjuntosDe(o);
+    if (adjs.length) {
+      var fa = K.nodo('<div class="rv-arch"><p class="rv-obl__et">' + (adjs.length === 1 ? 'Archivo de evidencia' : 'Archivos de evidencia <small>' + adjs.length + '</small>') + '</p>' +
+        '<div class="rv-arch__lista"></div></div>');
+      var zl = fa.querySelector('.rv-arch__lista');
+      adjs.forEach(function (ar) {
+        var ext = String(ar.ext || '').toLowerCase();
+        var ico = ext === 'pdf' ? 'pdf' : (ext === 'xls' || ext === 'xlsx') ? 'hoja' : 'documento';
+        var queEs = ext === 'pdf' ? 'PDF' : (ext === 'xls' || ext === 'xlsx') ? 'Excel' : 'Word';
+        var bA = K.nodo('<button type="button" class="ins-doc rv-arch__b" aria-label="Ver el adjunto ' + K.esc(numAdj(ar)) + ' de la obligación ' + o.n + '">' +
+          '<span class="rv-arch__num">' + K.esc(numAdj(ar)) + '</span>' +
+          '<span class="ins-doc__ico">' + K.icono(ico, 20) + '</span>' +
+          '<span class="ins-doc__txt"><b>' + K.esc(sinNumAdj(ar.nombre)) + '</b><small>' + queEs + ' · toca para verlo</small></span></button>');
+        bA.addEventListener('click', function () {
+          B.posicion.obligacion = o.n;
+          abrirArchivoObl(o.n, ar.id);
+        });
+        zl.appendChild(bA);
       });
       t.appendChild(fa);
     }
