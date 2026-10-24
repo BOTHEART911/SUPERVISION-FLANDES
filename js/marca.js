@@ -55,6 +55,17 @@
       appId: '1:338805824673:web:bb6702d4e72859d07ee4e0'
     },
 
+    /* 24/10 · asistente de ayuda (entrega 3): Gemini por Firebase AI Logic
+       (plan sin costo), la MISMA llave y App Check de CONTRATISTA. Llave
+       restringida a https://botheart911.github.io/* y SOLO a Firebase AI
+       Logic API y Firebase App Check API. Si se borra este bloque, el
+       asistente sigue solo con su buscador local. */
+    GEMINI: {
+      apiKey: 'AIzaSyAS3dSe0lFwI5UkSeMTxStnYyT8woABpio',
+      siteKey: '6LcaBP8tAAAAAAPrkVoS_GonTaDJV1Hf_ws0nhJy',
+      modelo: 'gemini-3.1-flash-lite'
+    },
+
     /* Pública por diseño: identifica al remitente, no autoriza a enviar. */
     FIREBASE_VAPID: 'BPTmdr1z6ESU0ESNE5N8XniYogAsRWMxa5L6Ws0xgVbwAzEVTEsuNVPYXoWfJ9mDmH7XUvbGlW00HPxHcU3owHg'
   };

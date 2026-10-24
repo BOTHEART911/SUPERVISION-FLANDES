@@ -80,12 +80,14 @@
     /* 30/09 · con el recuerdo, el inicio fresco sale YA (no a los 30 ms) y la lista
        de cuentas del inicio lo espera a él: un solo viaje, no 'inicio' + 'cuentas'. */
     if (recordado && K.recuerdo) refrescarArranque();
-    return (yaVino ? Promise.resolve(yaVino) : recordado ? Promise.resolve(recordado) : leer('inicio', { conCuentas: true })).then(function (d) {
+    return (yaVino ? Promise.resolve(yaVino) : recordado ? Promise.resolve(recordado) : leer('inicio', { conCuentas: true, selloAsistente: selloAsistente() })).then(function (d) {
       /* 30/09 · las cuentas (y sus conteos) viajan dentro de 'inicio' */
       if (d.cuentas && window.REVISION) window.REVISION.recibir(d.cuentas);
       ARRANQUE = d;
       YO = d.yo || YO;
       if (d.personas && K.piezas.personas) K.piezas.personas.cargar(d.personas);
+      /* 24/10 · ASISTENTE: la base viaja SOLO si cambió su sello y queda en el teléfono */
+      if (d.asistente && d.asistente.temas && K.piezas.asistente) K.piezas.asistente.base(d.asistente.temas, d.asistente.sello);
       if (d.push && K.piezas.avisos && K.piezas.avisos.configurar) K.piezas.avisos.configurar(d.push);
       if (d.config && K.piezas.guia) K.piezas.guia.configurar(d.config);   /* guías rápidas: el id del PDF de cada app llega en la configuración pública */
       if (d.config && K.piezas.creditos && K.piezas.creditos.configurar) K.piezas.creditos.configurar(d.config);
@@ -107,8 +109,11 @@
     return o;
   }
 
+  /** 24/10 · el sello de la base del asistente que ya tiene el teléfono */
+  function selloAsistente() { return (K.piezas.asistente && K.piezas.asistente.selloGuardado()) || ''; }
+
   function refrescarArranque() {
-    var pI = leer('inicio', { conCuentas: true });
+    var pI = leer('inicio', { conCuentas: true, selloAsistente: selloAsistente() });
     /* la lista del inicio espera a este viaje en vez de pedir 'cuentas' aparte */
     if (window.REVISION && window.REVISION.esperar) window.REVISION.esperar(pI);
     pI.then(function (d) {
@@ -144,10 +149,15 @@
         sub: 'Ingresa con tu documento y contraseña',
         imagen: M.APP_ICON || 'img/icono-512.png',
         arranqueEnLogin: true,   /* 7.0: el login trae el inicio en el mismo viaje */
-        datosArranque: function () { return { conCuentas: true }; },   /* 30/09 · y dentro, las cuentas */
+        datosArranque: function () { return { conCuentas: true, selloAsistente: selloAsistente() }; },   /* 30/09 · y dentro, las cuentas (24/10: y el sello del asistente) */
         comprobar: function (login) { return arranque(true, login).then(function (d) { return d.yo; }); },
         alEntrar: arrancar
       });
+      /* 24/10 · el asistente también en la entrada (olvidé mi contraseña,
+         cómo instalo la app), sin datos de estado */
+      if (K.piezas.asistente && window.SUPERVISION_ASISTENTE && !K.token()) {
+        K.piezas.asistente.enEntrada(window.SUPERVISION_ASISTENTE.entrada);
+      }
     });
   });
 
@@ -162,6 +172,7 @@
 
   function arrancar(yo) {
     YO = yo || {};
+    if (K.piezas.asistente) K.piezas.asistente.salirEntrada();   /* 24/10 */
     montarBanner();
 
     if (K.piezas.avisos) {
@@ -307,6 +318,7 @@
   function salir() {
     if (K.piezas.avisos) K.piezas.avisos.olvidar();
     if (K.piezas.insights) K.piezas.insights.quitar();
+    if (K.piezas.asistente) K.piezas.asistente.olvidar();   /* 24/10 · la conversación no pasa a otra sesión */
     if (window.REVISION) window.REVISION.olvidar();
     if (window.COMUNICACIONES_SUP) window.COMUNICACIONES_SUP.olvidar();
     if (window.ATRASOS) window.ATRASOS.olvidar();
@@ -617,6 +629,19 @@
     b.addEventListener('click', function () { K.vibrar(8); al(); });
     return b;
   }
+
+  /* 24/10 · lo que el asistente (js/asistente-app.js) lee de la app, sin viajar */
+  window.SUPERVISION_APP = {
+    arranque: function () { return ARRANQUE; },
+    yo: function () { return YO || {}; },
+    puede: puede,
+    permiso: function (v) { return PERMISO[v] || v; },
+    abrirLista: abrirLista,
+    abrirFoto: abrirFoto,
+    urlSecop: urlSecop,
+    vistaActual: vistaActual,
+    irA: irA
+  };
 
   /* ══════════════ auxiliares ══════════════ */
 
