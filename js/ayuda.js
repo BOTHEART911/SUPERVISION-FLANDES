@@ -145,7 +145,8 @@
         guia: 'Revisa por pestañas: **Contrato**, **Pago**, **Planilla** y **Actividades**. Cada documento se abre en el visor y cada evidencia en el carrusel con zoom. En **Actividades**, cada obligación trae sus imágenes y, si el contratista los adjuntó, sus **archivos de evidencia** (hasta 5, PDF, Word o Excel) numerados **1.1**, **1.2**…: toca cualquiera y se abre en el visor (aunque esté minimizado); con las flechas pasas a los demás, ya precargados. ' +
               'Marca con ✓ lo revisado. En cada obligación y documento tienes dos cajas: **Nota interna** (solo el equipo) y **Para el contratista**. **Guardar revisión** no cambia el estado. ' +
               'Al **devolver** o marcar **incompleta**, el motivo sale ya escrito con las observaciones para el contratista, en orden; se edita y se confirma. Las notas internas nunca le llegan. ' +
-              (soyRevisor() ? 'Cuando termines, deja tu **Visto bueno** o marca **Con inconsistencia**: queda en la tarjeta con tu nombre, fecha y hora. ' : '') +
+              (soyRevisor() ? 'Cuando termines, deja tu **Visto bueno** (sugieres aprobar) o **Con inconsistencia** (sugieres devolver) y, si quieres, **sugerencias para la próxima cuenta**: queda en la tarjeta con tu nombre, fecha y hora, y se arma tu **informe de revisión** (PDF interno; te avisamos cuando esté). ' : '') +
+              'Quien decide ve arriba de **Tomar decisión** lo que sugirió el revisor y su informe; si sugirió devolver y se aprueba, se escribe una línea de por qué. Al **aprobar** puedes enviar al contratista las **recomendaciones para su próxima cuenta**. ' +
               'Aprobar, devolver o marcar incompleta sale siempre **a nombre del supervisor** del contrato.',
         botones: [
           { texto: '¿Qué le llega al contratista si devuelvo?', responde: function () {

@@ -2867,3 +2867,28 @@
 .inf-analisis .ct-plazo__t { grid-template-columns: minmax(0, 1fr) auto; }
 .inf-analisis .ct-plazo__t b { font-weight: 700; }
 .inf-analisis .formulario__nota { margin: 0; }
+
+/* ══════════════ 27/10 · CONCEPTO DEL REVISOR E INFORME DE REVISIÓN (js/concepto.js) ══════════════ */
+.cpt { align-items: flex-start; }
+.cpt__c { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1 1 auto; }
+.cpt__t, .cpt__q, .cpt__n, .cpt__s { margin: 0; }
+.cpt__t b { color: var(--k-ok); }
+.rv-aviso--malo .cpt__t b { color: var(--k-malo); }
+.cpt__q { font-size: .78rem; color: var(--k-tinta-2, var(--k-tinta)); opacity: .85; }
+.cpt__n { white-space: pre-wrap; overflow-wrap: anywhere; }
+.cpt__s { font-size: .8rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+.cpt__a { margin-top: 4px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cpt__ver { min-height: 36px; padding: 6px 12px; font-size: .82rem; }
+.cpt__prep { display: inline-flex; align-items: center; gap: 8px; font-size: .8rem; opacity: .85; }
+.cpt__punto { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: cptLatido 1.1s ease-in-out infinite; }
+@keyframes cptLatido { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .cpt__punto { animation: none; } }
+.rv-dec .cpt { padding: 10px 12px; }
+.cpt__ayuda { font-size: .78rem; opacity: .85; margin: 0; }
+.cpt__contra { color: var(--k-malo); display: flex; align-items: flex-start; gap: 8px; font: 600 .84rem/1.4 var(--k-fuente); }
+.cpt__contra b { font-weight: 800; }
+.cpt__contra svg { color: var(--k-malo); flex: 0 0 auto; }
+.cpt__contra-in.rv-editor__ta { min-height: 0; resize: none; padding: 10px 12px; border-color: var(--k-malo); }
+.cpt__rec { display: flex; flex-direction: column; gap: 6px; padding-top: 4px; border-top: 1px dashed var(--k-linea); }
+.cpt__chk { display: flex; gap: 10px; align-items: flex-start; font-size: .84rem; line-height: 1.4; cursor: pointer; }
+.cpt__chk input { width: 20px; height: 20px; flex: 0 0 auto; margin-top: 1px; accent-color: var(--k-marca); }
