@@ -57,10 +57,12 @@
       return;
     }
     var ruta = location.hash;
-    K.piezas.esqueletos.mientras(caja, cargar(id, false, function (d) {
+    if (K.piezas.exportar && K.piezas.exportar.calentarPDF) K.piezas.exportar.calentarPDF();
+    var listo = Promise.all([cargar(id, false, function (d) {
       /* llegó lo fresco y es distinto: se repinta si la persona sigue aquí */
       if (location.hash === ruta && caja.isConnected) { var y = window.scrollY; DATOS = d; pintar(caja, d); window.scrollTo(0, y); }
-    }), { forma: 'texto', cuantos: 8, espera: 'Trayendo las cuentas del contrato' })
+    }), pieza()]).then(function (r) { return r[0]; });
+    K.piezas.esqueletos.mientras(caja, listo, { forma: 'texto', cuantos: 8, espera: 'Trayendo las cuentas del contrato' })
       .then(function (d) { DATOS = d; pintar(caja, d); })
       ['catch'](function (e) { caja.appendChild(C.errorCaja(e, function () { C.app.innerHTML = ''; vista(sub); })); });
   }
@@ -97,10 +99,10 @@
     /* descargas */
     var baj = K.nodo('<section class="kit-tarjeta inf-bajar"><h3 class="grupo__t">Descargar el informe</h3>' +
       '<div class="rp-bajar">' +
-      '<button type="button" class="kit-btn kit-btn--marca" data-f="pdf">' + K.icono('pdf', 16) + ' Informe gerencial (PDF)</button>' +
+      '<button type="button" class="kit-btn kit-btn--marca" data-f="pdf">' + K.icono('pdf', 16) + (A && A.avances ? ' Informe de avances (PDF)' : ' Informe gerencial (PDF)') + '</button>' +
       '<button type="button" class="kit-btn kit-btn--plano" data-f="xlsx">' + K.icono('hoja', 16) + ' Excel (todas las columnas)</button></div>' +
-      '<p class="formulario__nota">El PDF trae el análisis de las cuentas (cuantificación, copia entre cuentas, evidencias, tiempos, devoluciones y alertas), conclusiones y recomendaciones, y como anexo todas las actividades completas. El Excel trae una fila por cuenta con todas las columnas y el análisis por obligación.</p></section>');
-    if (K.piezas.exportar && K.piezas.exportar.calentarPDF) K.piezas.exportar.calentarPDF();
+      (A && A.avances ? '<p class="formulario__nota">El PDF trae las cuentas, los avances por periodo con sus cifras de gestión y la evolución de cada obligación con el texto completo. El Excel trae una fila por cuenta con todas las columnas.</p></section>' :
+      '<p class="formulario__nota">El PDF trae el análisis de las cuentas (cuantificación, copia entre cuentas, evidencias, tiempos, devoluciones y alertas), conclusiones y recomendaciones, y como anexo todas las actividades completas. El Excel trae una fila por cuenta con todas las columnas y el análisis por obligación.</p></section>'));
     baj.querySelectorAll('button').forEach(function (b) {
       b.disabled = !(d.cuentas || []).length;
       b.addEventListener('click', function () {
@@ -155,6 +157,7 @@
 
   /** La calidad del reporte en la pantalla: puntaje, los 4 componentes, hallazgos y alertas en rojo. */
   function tarjetaAnalisis(A, IC) {
+    if (A.avances) return tarjetaAvances(A);
     var nv = IC.nivel(A.global);
     var t = K.nodo('<section class="kit-tarjeta grupo inf-analisis"><h3 class="grupo__t">Calidad del reporte</h3></section>');
     t.appendChild(K.nodo('<div class="ct-cifras"><div class="ct-cifra ' + (nv.tono === 'ok' ? 'rp-cifra--ok' : '') + '"><b>' +
@@ -172,6 +175,26 @@
       var p = K.nodo('<p class="formulario__nota"></p>'); p.textContent = h; t.appendChild(p);
     });
     return t;
+  }
+
+  /** 27/10 · contratos marcados en INFORME_AVANCES: sin calificación, con sus avances. */
+  function tarjetaAvances(A) {
+    var g = A.porObl.filter(function (o) { return !o.general; });
+    var nH = A.hitos.reduce(function (a, L) { return a + L.length; }, 0);
+    var t = K.nodo('<section class="kit-tarjeta grupo inf-analisis"><h3 class="grupo__t">Informe de avances</h3></section>');
+    t.appendChild(K.nodo('<div class="ct-cifras">' +
+      '<div class="ct-cifra rp-cifra--ok"><b>' + A.cuentas.length + '</b><span>Cuentas radicadas</span></div>' +
+      '<div class="ct-cifra rp-cifra--ok"><b>' + A.cifras.pagadas + '</b><span>Cuentas pagadas</span></div>' +
+      '<div class="ct-cifra rp-cifra--ok"><b>' + g.filter(function (o) { return o.reales; }).length + ' de ' + g.length + '</b><span>Obligaciones con avance</span></div>' +
+      '<div class="ct-cifra rp-cifra--ok"><b>' + nH + '</b><span>Cifras de gestión</span></div></div>'));
+    A.hallazgos.forEach(function (h) { var p = K.nodo('<p class="formulario__nota"></p>'); p.textContent = h; t.appendChild(p); });
+    return t;
+  }
+
+  /** La pieza del informe: ya está en Supervisión; ADMIN y Contratación la bajan al abrir la vista. */
+  function pieza() {
+    if (K.piezas.informeCuentas && K.piezas.informeCuentas.aGerencial) return Promise.resolve(K.piezas.informeCuentas);
+    return K.piezas.exportar.cargarInformeCuentas();
   }
 
   window.INFORME = {

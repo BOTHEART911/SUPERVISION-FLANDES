@@ -2858,3 +2858,12 @@
 .rc-hecho--malo { background: var(--k-malo-fondo); color: var(--k-malo); }
 :root[data-tema="oscuro"] .rc-hecho { color: var(--k-ok); }
 :root[data-tema="oscuro"] .rc-hecho--malo { color: var(--k-malo); }
+
+/* 27/10 · calidad del reporte e informe de avances (el número ya no se monta sobre la etiqueta) */
+.inf-analisis { display: flex; flex-direction: column; gap: 8px; }
+.inf-analisis .ct-cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 760px) { .inf-analisis .ct-cifras { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.inf-analisis .ct-cifra b { overflow-wrap: anywhere; }
+.inf-analisis .ct-plazo__t { grid-template-columns: minmax(0, 1fr) auto; }
+.inf-analisis .ct-plazo__t b { font-weight: 700; }
+.inf-analisis .formulario__nota { margin: 0; }
