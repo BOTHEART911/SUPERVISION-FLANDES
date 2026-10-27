@@ -2282,6 +2282,13 @@
 .rv-dec__op--malo svg { color: var(--k-malo); }
 .rv-dec__op--ok[aria-checked="true"] { border-color: var(--k-ok); background: var(--k-ok-fondo); }
 .rv-dec__op--malo[aria-checked="true"] { border-color: var(--k-malo); background: var(--k-malo-fondo); }
+/* 26/10 · DEVOLVER sugerido: hay observaciones para el contratista */
+.rv-dec__op--sugerido { border-color: var(--k-malo); background: var(--k-malo-fondo); box-shadow: 0 0 0 3px color-mix(in srgb, var(--k-malo) 28%, transparent); animation: rvDecLatido 1.4s ease-in-out 3; }
+.rv-dec__op--sugerido b { color: var(--k-malo); }
+.rv-dec__op--sugerido[aria-checked="true"] { box-shadow: 0 0 0 4px color-mix(in srgb, var(--k-malo) 40%, transparent); }
+.rv-dec__chip { margin-top: 4px; padding: 3px 9px; border-radius: 999px; background: var(--k-malo); color: #fff; font: 700 .7rem/1.2 var(--k-fuente); text-align: center; }
+@keyframes rvDecLatido { 0%, 100% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--k-malo) 28%, transparent); } 50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--k-malo) 10%, transparent); } }
+@media (prefers-reduced-motion: reduce) { .rv-dec__op--sugerido { animation: none; } }
 .rv-dec__zona { display: flex; flex-direction: column; gap: 8px; }
 .rv-dec__txt { margin: 0; font: 400 .9rem/1.5 var(--k-fuente); }
 .rv-dec__et { margin: 0; font: 700 .74rem/1.3 var(--k-fuente); color: var(--k-apagado); text-transform: uppercase; letter-spacing: .3px; }
