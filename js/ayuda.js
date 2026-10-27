@@ -290,7 +290,8 @@
   GUIAS.informe = function () {
     return {
       guia: 'Las cuentas de UN contrato (nunca se mezclan dos contratos de la misma persona). Arriba: valor, cobrado, pagado y saldo. ' +
-            '**PDF** es un informe para leer, por bloques (puedes sumarle las actividades de cada obligación). **Excel** trae una fila por cuenta con todas las columnas, las mismas de Contabilidad y Tesorería.',
+            'Debajo verás la **calidad del reporte** (de 0 a 100): si cuantifica sus actividades, si copia el texto de una cuenta a otra, si soporta con evidencias y si radica a tiempo, con las alertas en rojo. ' +
+            '**Informe gerencial (PDF)** trae ese análisis completo, conclusiones, recomendaciones y todas las actividades como anexo, sin cortes. **Excel** trae una fila por cuenta con todas las columnas y el análisis por obligación.',
       botones: [
         { texto: '¿Cómo va este contrato?', responde: function () {
             var d = IN() && IN()._datos(); if (!d) return 'Todavía está cargando.';

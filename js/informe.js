@@ -9,9 +9,11 @@
      · Se pide por ID CONTRATO (documento + contrato): nunca se mezclan.
      · Antes de descargar se VE: el contrato, las cifras (valor, cobrado,
        pagado, saldo) y cada cuenta con su estado, su orden y su egreso.
-     · PDF gerencial por bloques (con o sin las actividades de cada
-       obligación) y Excel con las columnas que van a usar también
-       CONTABILIDAD y TESORERÍA (pieza kit/informe-cuentas.js).
+     · 27/10: INFORME GERENCIAL en PDF (análisis de calidad del reporte,
+       copia entre cuentas, evidencias, tiempos, devoluciones, alertas,
+       conclusiones y las actividades completas como anexo, sin cortes) y
+       Excel con las columnas de CONTABILIDAD y TESORERÍA más el análisis
+       por obligación (pieza kit/informe-cuentas.js).
    ============================================================ */
 (function () {
   'use strict';
@@ -87,21 +89,27 @@
       '<div class="ct-plazo__barra" role="img" aria-label="' + k.avance + ' por ciento cobrado"><i style="width:' + Math.min(100, k.avance) + '%"></i></div></div>'));
     caja.appendChild(cif);
 
+    /* 27/10 · el análisis gerencial se calcula aquí mismo (sin viajes) */
+    var A = null;
+    try { A = (d.cuentas || []).length && IC.analizar ? IC.analizar(d) : null; } catch (e) { A = null; try { console.error(e); } catch (e2) {} }
+    if (A) caja.appendChild(tarjetaAnalisis(A, IC));
+
     /* descargas */
     var baj = K.nodo('<section class="kit-tarjeta inf-bajar"><h3 class="grupo__t">Descargar el informe</h3>' +
-      '<label class="inf-act"><input type="checkbox"> <span>Incluir en el PDF las actividades de cada obligación</span></label>' +
       '<div class="rp-bajar">' +
-      '<button type="button" class="kit-btn kit-btn--marca" data-f="pdf">' + K.icono('pdf', 16) + ' PDF (informe)</button>' +
+      '<button type="button" class="kit-btn kit-btn--marca" data-f="pdf">' + K.icono('pdf', 16) + ' Informe gerencial (PDF)</button>' +
       '<button type="button" class="kit-btn kit-btn--plano" data-f="xlsx">' + K.icono('hoja', 16) + ' Excel (todas las columnas)</button></div>' +
-      '<p class="formulario__nota">El PDF es un informe para leer, por bloques. El Excel trae una fila por cuenta con todas las columnas (las mismas de Contabilidad y Tesorería).</p></section>');
-    var chk = baj.querySelector('input');
+      '<p class="formulario__nota">El PDF trae el análisis de las cuentas (cuantificación, copia entre cuentas, evidencias, tiempos, devoluciones y alertas), conclusiones y recomendaciones, y como anexo todas las actividades completas. El Excel trae una fila por cuenta con todas las columnas y el análisis por obligación.</p></section>');
+    if (K.piezas.exportar && K.piezas.exportar.calentarPDF) K.piezas.exportar.calentarPDF();
     baj.querySelectorAll('button').forEach(function (b) {
       b.disabled = !(d.cuentas || []).length;
       b.addEventListener('click', function () {
         if (b.disabled) return;
         b.disabled = true; b.classList.add('kit-ocupado');
-        var p = b.getAttribute('data-f') === 'pdf' ? IC.aPDF(d, { actividades: chk.checked }) : IC.aExcel(d);
+        var t0 = Date.now();
+        var p = b.getAttribute('data-f') === 'pdf' ? IC.aGerencial(d) : IC.aExcel(d);
         Promise.resolve(p).then(function (r) {
+          try { console.info('[informe contratista]', { ms: Date.now() - t0, salida: r }); } catch (e) {}
           K.aviso(r === 'csv' ? 'No cargó Excel: se descargó en CSV (Excel lo abre).' : (r === 'impresion' ? 'Guárdalo como PDF desde la ventana de impresión.' : 'Descargado.'), 'ok', 3500);
         }, function (e) { K.aviso((e && e.message) || 'No se pudo descargar.', 'malo', 6000); })
           .then(function () { b.disabled = false; b.classList.remove('kit-ocupado'); });
@@ -143,6 +151,27 @@
       caja.appendChild(ob);
     }
     K.piezas.creditos.montar(caja);
+  }
+
+  /** La calidad del reporte en la pantalla: puntaje, los 4 componentes, hallazgos y alertas en rojo. */
+  function tarjetaAnalisis(A, IC) {
+    var nv = IC.nivel(A.global);
+    var t = K.nodo('<section class="kit-tarjeta grupo inf-analisis"><h3 class="grupo__t">Calidad del reporte</h3></section>');
+    t.appendChild(K.nodo('<div class="ct-cifras"><div class="ct-cifra ' + (nv.tono === 'ok' ? 'rp-cifra--ok' : '') + '"><b>' +
+      (A.global === null ? '—' : Math.round(A.global) + ' / 100') + '</b><span>' + K.esc(nv.t) + '</span></div></div>'));
+    A.comps.forEach(function (q) {
+      var v = q.v === null ? 0 : Math.round(q.v);
+      t.appendChild(K.nodo('<div class="ct-plazo"><p class="ct-plazo__t"><span>' + K.esc(q.t) + '</span><b>' + (q.v === null ? 'N/A' : v) + '</b></p>' +
+        '<div class="ct-plazo__barra" role="img" aria-label="' + K.esc(q.t) + ' ' + v + ' de 100"><i style="width:' + v + '%"></i></div></div>'));
+    });
+    var malas = A.alertas.filter(function (a) { return a.tono === 'malo'; });
+    malas.forEach(function (a) {
+      var m = K.nodo('<p class="rp-fila__m"></p>'); m.textContent = 'Cuenta ' + a.cuenta + ': ' + a.t; t.appendChild(m);
+    });
+    A.hallazgos.filter(function (h) { return !/^ALERTA/.test(h); }).slice(0, 4).forEach(function (h) {
+      var p = K.nodo('<p class="formulario__nota"></p>'); p.textContent = h; t.appendChild(p);
+    });
+    return t;
   }
 
   window.INFORME = {
