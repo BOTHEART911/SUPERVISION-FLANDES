@@ -174,6 +174,11 @@
     A.hallazgos.filter(function (h) { return !/^ALERTA/.test(h); }).slice(0, 4).forEach(function (h) {
       var p = K.nodo('<p class="formulario__nota"></p>'); p.textContent = h; t.appendChild(p);
     });
+    /* 27/10 · contratos en INFORME_AVANCES: lo logrado con el desarrollo */
+    if (A.seccionAvances && A.hitos) {
+      var ult = A.hitos[A.hitos.length - 1] || [];
+      if (ult.length) { var av = K.nodo('<p class="formulario__nota"></p>'); av.textContent = 'Avances logrados en la cuenta más reciente: ' + ult.join(' · ') + '.'; t.appendChild(av); }
+    }
     return t;
   }
 
