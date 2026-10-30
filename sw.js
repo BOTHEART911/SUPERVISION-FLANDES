@@ -75,7 +75,7 @@ var ARMAZON = [
   './kit/version.js',
   './kit/banner.js', './kit/banner.css',
   './kit/sesion.js', './kit/sesion.css',
-  './kit/esqueletos.js', './kit/esqueletos.css',
+  './kit/esqueletos.js', './kit/esqueletos.css', './kit/variacion.js', './kit/variacion.css',
   './kit/guardado.js', './kit/guardado.css',
   './kit/conexion.js', './kit/conexion.css',
   './kit/instalar.js', './kit/instalar.css',

@@ -2892,3 +2892,7 @@
 .cpt__rec { display: flex; flex-direction: column; gap: 6px; padding-top: 4px; border-top: 1px dashed var(--k-linea); }
 .cpt__chk { display: flex; gap: 10px; align-items: flex-start; font-size: .84rem; line-height: 1.4; cursor: pointer; }
 .cpt__chk input { width: 20px; height: 20px; flex: 0 0 auto; margin-top: 1px; accent-color: var(--k-marca); }
+
+/* 30/10 · comparar con la cuenta anterior (kit/variacion.js) */
+.rv-cmp-b { margin-top: 10px; display: inline-flex; align-items: center; gap: 6px; }
+.rv-cmp-zona { margin-top: 2px; }

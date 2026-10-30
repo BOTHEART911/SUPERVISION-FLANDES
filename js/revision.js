@@ -1242,8 +1242,50 @@
       salto.appendChild(b);
     });
     z.appendChild(salto);
+    precargarAnterior();   /* 30/10 · de fondo: la pestaña no espera */
 
     obl.forEach(function (o) { z.appendChild(tarjetaObligacion(o, obl.length)); });
+  }
+
+  /* ══════════ 30/10 · COMPARAR CON LA CUENTA ANTERIOR ══════════
+     Por obligación, lado a lado, con la MISMA medida del informe gerencial
+     (kit/variacion.js). Las actividades anteriores viajan por su propia
+     ruta, de FONDO, al abrir la pestaña Actividades: el detalle no espera
+     nada y el botón casi siempre responde al instante. */
+  function claveAnt() { return D ? 'rant:' + D.cuenta.idContrato + ':' + D.cuenta.informe : ''; }
+  function precargarAnterior() {
+    var V = K.piezas.variacion;
+    if (!V || !D || !(Number(D.cuenta.informe) > 1)) return null;
+    return V.anteriores('revisionAnterior', { fila: D.cuenta.fila, id: D.cuenta.idContrato, informe: D.cuenta.informe }, claveAnt());
+  }
+  function botonComparar(donde, o) {
+    var V = K.piezas.variacion;
+    if (!V || !D || !(Number(D.cuenta.informe) > 1)) return;
+    var b = K.nodo('<button type="button" class="kit-btn kit-btn--plano rv-cmp-b">' + K.icono('grafica', 16) + ' Comparar con la cuenta anterior</button>');
+    var zona = K.nodo('<div class="rv-cmp-zona" hidden></div>');
+    var cargado = false;
+    b.addEventListener('click', function () {
+      K.vibrar(8);
+      B.posicion.obligacion = o.n;
+      zona.hidden = !zona.hidden;
+      b.innerHTML = K.icono('grafica', 16) + (zona.hidden ? ' Comparar con la cuenta anterior' : ' Ocultar la comparación');
+      if (zona.hidden || cargado) return;
+      zona.innerHTML = '<span class="var-pas var-pas--gen">Trayendo las cuentas anteriores…</span>';
+      var p = precargarAnterior();
+      if (K.vista && K.vista.adoptar && p) K.vista.adoptar(p);
+      Promise.all([p, V.ic()]).then(function (r) {
+        cargado = true;
+        zona.innerHTML = '';
+        zona.appendChild(V.panelComparar(r[1], { n: o.n, texto: o.texto, actual: o.actividad || '' }, r[0], (D.contrato || {}).contrato || D.cuenta.contrato || '', D.cuenta.informe));
+      })['catch'](function (e) {
+        V.olvidar(claveAnt());
+        zona.innerHTML = '';
+        zona.appendChild(K.nodo('<p class="var-nada">' + K.icono('aviso', 14) + ' No se pudo traer la cuenta anterior. Toca de nuevo para reintentar.</p>'));
+        zona.hidden = true; b.innerHTML = K.icono('grafica', 16) + ' Comparar con la cuenta anterior';
+      });
+    });
+    donde.appendChild(b);
+    donde.appendChild(zona);
   }
 
   function tarjetaObligacion(o, total) {
@@ -1255,6 +1297,7 @@
     var act = K.nodo('<div class="rv-obl__act"><p class="rv-obl__et">Actividades</p></div>');
     if (o.actividad) act.appendChild(textoConEnlaces(o.actividad));
     else act.appendChild(K.nodo('<p class="rv-obl__vacia">' + K.icono('aviso', 14) + ' Sin actividades escritas.</p>'));
+    botonComparar(act, o);   /* 30/10 · comparar con la cuenta anterior */
     t.appendChild(act);
 
     var ev = o.evidencias || [];
