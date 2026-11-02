@@ -2896,3 +2896,8 @@
 /* 30/10 · comparar con la cuenta anterior (kit/variacion.js) */
 .rv-cmp-b { margin-top: 10px; display: inline-flex; align-items: center; gap: 6px; }
 .rv-cmp-zona { margin-top: 2px; }
+
+/* 03/11 · los 6 bombillos de cada obligación (kit/variacion.js) */
+.rv-bom { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--k-linea); display: grid; gap: 6px; }
+.rv-bom__t { margin: 0; display: flex; align-items: center; gap: 6px; font-size: .78rem; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; color: var(--k-tinta); }
+.rv-bom__t small { font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--k-apagado); }

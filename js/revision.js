@@ -1291,6 +1291,42 @@
   /* 02/11 · lo que el motor necesita de esta cuenta: soportes por obligación y su periodo */
   function soporteDe(o) { return (o.evidencias || []).length + adjuntosDe(o).length; }
   function periodoCuenta() { var k = (D && D.cuenta && D.cuenta.campos) || {}; return { desde: k.inicioPeriodo || '', hasta: k.finPeriodo || '' }; }
+  /**
+   * 03/11 · LOS 6 BOMBILLOS EN CADA OBLIGACIÓN (a la vista, en lenguaje técnico).
+   * Se miden en el teléfono con el mismo motor del informe gerencial cuando llegan
+   * las actividades anteriores (de fondo, una sola vez por cuenta): la pestaña no
+   * espera nada. Tocar un bombillo muestra el fragmento que lo cumple.
+   */
+  function bombillosObligacion(donde, o) {
+    var V = K.piezas.variacion;
+    if (!V || !D) return;
+    var caja = K.nodo('<div class="rv-bom" aria-live="polite"><p class="rv-bom__t">' + K.icono('grafica', 15) + ' Calidad de la actividad <small>· midiendo…</small></p></div>');
+    donde.appendChild(caja);
+    var p = Number(D.cuenta.informe) > 1 ? precargarAnterior() : Promise.resolve({ v: 2, obligaciones: [], cuentas: [] });
+    Promise.all([p, V.ic()]).then(function (r) {
+      if (!caja.isConnected) return;
+      try {
+        var d = r[0] || {}, I = r[1], per = periodoCuenta(), nC = (D.contrato || {}).contrato || D.cuenta.contrato || '';
+        var prev = V.previosDe(d, o.n);
+        var R = V.medir(I, o.actividad, V.preparar(I, o.texto, prev, nC), { obl: o.texto, desde: per.desde, hasta: per.hasta, soporte: soporteDe(o), nContrato: nC });
+        caja.innerHTML = '';
+        if (R.estado === 'general' || R.estado === 'noreq') {
+          caja.appendChild(K.nodo('<p class="rv-bom__t">' + K.icono('grafica', 15) + ' Calidad de la actividad <small>· ' + (R.estado === 'general' ? 'obligación general: no se mide' : 'no requerida en el periodo') + '</small></p>'));
+          return;
+        }
+        var v = V.verdes(R);
+        caja.appendChild(K.nodo('<p class="rv-bom__t">' + K.icono('grafica', 15) + ' Calidad de la actividad <small>· ' + v.v + ' de ' + v.n + ' en verde</small></p>'));
+        var ver = K.nodo('<div class="var-bor__ver" hidden></div>');
+        caja.appendChild(V.bombillos(R, 'revisor', function (k, rangos) {
+          ver.hidden = k < 0;
+          if (k >= 0) ver.innerHTML = V.resaltar(o.actividad, rangos, k === 0 ? 'var-rep' : 'var-hit');
+        }));
+        caja.appendChild(ver);
+        caja.appendChild(K.nodo('<p class="var-cmp__ley">Guía automática: se mide la <b>forma</b> de escribir, no el vocabulario (repetir los términos de la obligación no cuenta). Toca un bombillo para ver el fragmento. No reemplaza tu revisión.</p>'));
+      } catch (e) { caja.remove(); }
+    })['catch'](function () { if (caja.isConnected) caja.remove(); });
+  }
+
   /** 02/11 · en TOMAR DECISIÓN: la calidad de las actividades por obligación (los 6 bombillos), con el mismo motor. */
   function resumenActividades(donde) {
     var V = K.piezas.variacion;
@@ -1315,6 +1351,7 @@
     var act = K.nodo('<div class="rv-obl__act"><p class="rv-obl__et">Actividades</p></div>');
     if (o.actividad) act.appendChild(textoConEnlaces(o.actividad));
     else act.appendChild(K.nodo('<p class="rv-obl__vacia">' + K.icono('aviso', 14) + ' Sin actividades escritas.</p>'));
+    if (o.actividad) bombillosObligacion(act, o);   /* 03/11 · los 6 bombillos a la vista, sin tocar nada */
     botonComparar(act, o);   /* 30/10 · comparar con la cuenta anterior */
     t.appendChild(act);
 
