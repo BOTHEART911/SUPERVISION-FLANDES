@@ -5,6 +5,28 @@
    Generado desde la semilla: no se edita a mano. */
 window.ASISTENTE_BASE = [
 {
+"id": "S-BOMBILLOS",
+"app": "SUPERVISION",
+"vista": "cuenta,revisar",
+"titulo": "¿Qué miden los bombillos al revisar?",
+"frases": [
+"que son los bombillos",
+"comparar con la cuenta anterior",
+"estructura igual",
+"plantilla rellenada",
+"la actividad repite",
+"como sé si copió",
+"calidad de las actividades",
+"misma cifra que la cuenta anterior",
+"bombillo rojo"
+],
+"respuesta": "En **Comparar con la cuenta anterior** cada obligación trae **6 bombillos** con el mismo motor del informe gerencial: diferenció lo realizado frente al periodo anterior (o **estructura igual**, **plantilla rellenada** o el mismo orden de frases), **cuantificó** y acompañó la cifra, indicó **destinatario o participante**, dejó **entregable verificable**, ubicó la actividad **en el periodo** y tiene **soporte**. Toca uno y se resalta el fragmento. Se mide la forma de escribir, no el vocabulario: repetir los términos de la obligación no cuenta. La misma cifra que la cuenta anterior solo se informa. En **Tomar decisión** sale el resumen por obligación. Es una guía: no reemplaza tu revisión.",
+"accion": "ir:revisar",
+"estado": "",
+"activo": true,
+"orden": 59
+},
+{
 "id": "S-INICIO",
 "app": "SUPERVISION",
 "vista": "",

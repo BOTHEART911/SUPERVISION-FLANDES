@@ -1276,7 +1276,7 @@
       Promise.all([p, V.ic()]).then(function (r) {
         cargado = true;
         zona.innerHTML = '';
-        zona.appendChild(V.panelComparar(r[1], { n: o.n, texto: o.texto, actual: o.actividad || '' }, r[0], (D.contrato || {}).contrato || D.cuenta.contrato || '', D.cuenta.informe));
+        zona.appendChild(V.panelComparar(r[1], { n: o.n, texto: o.texto, actual: o.actividad || '', soporte: soporteDe(o) }, r[0], (D.contrato || {}).contrato || D.cuenta.contrato || '', D.cuenta.informe, periodoCuenta()));
       })['catch'](function (e) {
         V.olvidar(claveAnt());
         zona.innerHTML = '';
@@ -1286,6 +1286,24 @@
     });
     donde.appendChild(b);
     donde.appendChild(zona);
+  }
+
+  /* 02/11 · lo que el motor necesita de esta cuenta: soportes por obligación y su periodo */
+  function soporteDe(o) { return (o.evidencias || []).length + adjuntosDe(o).length; }
+  function periodoCuenta() { var k = (D && D.cuenta && D.cuenta.campos) || {}; return { desde: k.inicioPeriodo || '', hasta: k.finPeriodo || '' }; }
+  /** 02/11 · en TOMAR DECISIÓN: la calidad de las actividades por obligación (los 6 bombillos), con el mismo motor. */
+  function resumenActividades(donde) {
+    var V = K.piezas.variacion;
+    if (!V || !D) return;
+    var caja = K.nodo('<div class="rv-dec__var"><span class="var-pas var-pas--gen">Midiendo las actividades…</span></div>');
+    donde.appendChild(caja);
+    var p = Number(D.cuenta.informe) > 1 ? precargarAnterior() : Promise.resolve({ v: 2, obligaciones: [], cuentas: [] });
+    Promise.all([p, V.ic()]).then(function (r) {
+      if (!caja.isConnected) return;
+      caja.innerHTML = '';
+      caja.appendChild(V.resumen(r[1], (D.obligaciones || []).map(function (o) { return { n: o.n, texto: o.texto, actual: o.actividad || '', soporte: soporteDe(o) }; }),
+        r[0], (D.contrato || {}).contrato || D.cuenta.contrato || '', D.cuenta.informe, periodoCuenta()));
+    })['catch'](function () { if (caja.isConnected) caja.remove(); });
   }
 
   function tarjetaObligacion(o, total) {
@@ -2211,6 +2229,7 @@
       cuerpo.appendChild(K.nodo('<p class="rv-aviso rv-aviso--mini rv-aviso--malo rv-dec__sug">' + K.icono('aviso', 16) + '<span>Dejaste ' +
         (nObsDec === 1 ? '<b>1 observación' : '<b>' + nObsDec + ' observaciones') + ' para el contratista</b>: lo indicado es <b>devolver</b> la cuenta.</span></p>'));
     }
+    resumenActividades(cuerpo);   /* 02/11 · los 6 bombillos por obligación */
     cuerpo.appendChild(op);
     var zona = K.nodo('<div class="rv-dec__zona"></div>');
     cuerpo.appendChild(zona);
