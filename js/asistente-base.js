@@ -20,7 +20,7 @@ window.ASISTENTE_BASE = [
 "misma cifra que la cuenta anterior",
 "bombillo rojo"
 ],
-"respuesta": "En **Comparar con la cuenta anterior** cada obligación trae **6 bombillos** con el mismo motor del informe gerencial: diferenció lo realizado frente al periodo anterior (o **estructura igual**, **plantilla rellenada** o el mismo orden de frases), **cuantificó** y acompañó la cifra, indicó **destinatario o participante**, dejó **entregable verificable**, ubicó la actividad **en el periodo** y tiene **soporte**. Toca uno y se resalta el fragmento. Se mide la forma de escribir, no el vocabulario: repetir los términos de la obligación no cuenta. La misma cifra que la cuenta anterior solo se informa. En **Tomar decisión** sale el resumen por obligación. Es una guía: no reemplaza tu revisión.",
+"respuesta": "En **Comparar con la cuenta anterior** cada obligación trae **6 bombillos** con el mismo motor del informe gerencial: diferenció lo realizado frente al periodo anterior (o **estructura igual**, **plantilla rellenada** o el mismo orden de frases), **cuantificó** y acompañó la cifra, indicó **destinatario o participante**, dejó **entregable verificable**, ubicó la actividad **en el periodo** y tiene **soporte** (naranja si solo dijo dónde verificarlo o si la obligación puede no requerir adjunto; verde si cargó el soporte o declaró que no requiere adjunto). Toca uno y se resalta el fragmento. Se mide la forma de escribir, no el vocabulario: repetir los términos de la obligación no cuenta. La misma cifra que la cuenta anterior solo se informa. En **Tomar decisión** sale el resumen por obligación. Es una guía: no reemplaza tu revisión.",
 "accion": "ir:revisar",
 "estado": "",
 "activo": true,
