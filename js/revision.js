@@ -1379,14 +1379,14 @@
       (act.i || []).forEach(function (x) {
         mios[x[0]] = 1;
         if (!x[1] || x[1] === 'ERR') return;
-        var m = H.buscar(ix, { h64: x[1], h256: x[2] })[0];
-        if (m) out.img[x[0]] = { m: m, nivel: 'parecida' };
+        var ms = H.buscar(ix, { h64: x[1], h256: x[2] }).slice(0, 3);   /* hasta 3 cuentas, la más reciente primero */
+        if (ms.length) out.img[x[0]] = { m: ms[0], nivel: 'parecida', todas: ms.map(function (m) { return { m: m, nivel: 'parecida' }; }) };
       });
       (act.a || []).forEach(function (x) {
         mios[x[0]] = 1;
         if (!x[2]) return;
-        var m = H.buscar(ix, { md5: x[2] })[0];
-        if (m) out.adj[x[0]] = { m: m, nivel: 'igual' };
+        var ms = H.buscar(ix, { md5: x[2] }).slice(0, 3);
+        if (ms.length) out.adj[x[0]] = { m: ms[0], nivel: 'igual', todas: ms.map(function (m) { return { m: m, nivel: 'igual' }; }) };
       });
       (d.evid.otros || []).forEach(function (z) { if (mios[z.id] && !out.img[z.id] && !out.adj[z.id]) out.otros[z.id] = z; });
     }
@@ -1394,6 +1394,14 @@
     return out;
   }
   function deCuentaEv(m, o) { return 'la cuenta ' + m.informe + (m.obl && m.obl !== o.n ? ' (obligación ' + m.obl + ')' : ''); }
+  /** "la cuenta 5" · "las cuentas 5 y 4" (las de ese nivel) */
+  function deCuentasEv(r, nivel, o) {
+    var l = (r.todas || [{ m: r.m, nivel: r.nivel }]).filter(function (t) { return t.nivel === nivel; }).map(function (t) { return t.m; });
+    if (l.length < 2) return deCuentaEv(l[0] || r.m, o);
+    var ns = [];
+    l.forEach(function (m) { if (ns.indexOf(m.informe) < 0) ns.push(m.informe); });
+    return ns.length < 2 ? deCuentaEv(l[0], o) : 'las cuentas ' + ns.slice(0, -1).join(', ') + ' y ' + ns[ns.length - 1];
+  }
   /** "1 imagen repetida de la cuenta 3 · 1 muy parecida a la de la cuenta 5" */
   function textoRep(rep, o) {
     function parte(mapa, nivel, uno, varios, union) {
@@ -1434,15 +1442,22 @@
       /* las parecidas se comprueban con los archivos (de fondo) */
       Object.keys(rep.img).forEach(function (id) {
         var r = rep.img[id];
-        if (r.nivel !== 'parecida' || r.pidiendo) return;
+        if (r.pidiendo) return;
         r.pidiendo = true;
-        encolarFina(function () {
-          if (!t.isConnected || D.cuenta !== cuenta) return null;
-          return K.piezas.huella.confirmar(id, r.m.id, d.evid.umbral).then(function (f) {
-            r.fino = f;
-            if (f && f.igual) r.nivel = 'igual';
-            if (t.isConnected) pintarRepetidas(t, o, rep);
-          }, function () { /* sin Drive: se queda en «muy parecida» */ });
+        (r.todas || []).forEach(function (c, k) {
+          encolarFina(function () {
+            if (!t.isConnected || D.cuenta !== cuenta) return null;
+            return K.piezas.huella.confirmar(id, c.m.id, d.evid.umbral).then(function (f) {
+              c.fino = f;
+              if (f && f.igual) c.nivel = 'igual';
+            }, function () { /* sin Drive: se queda en «muy parecida» */ }).then(function () {
+              if (k < r.todas.length - 1) return;
+              var ig = r.todas.filter(function (x) { return x.nivel === 'igual'; });
+              r.fino = true;
+              if (ig.length) { r.nivel = 'igual'; r.m = ig[0].m; }
+              if (t.isConnected) pintarRepetidas(t, o, rep);
+            });
+          });
         });
       });
     })['catch'](function () {});
@@ -1460,7 +1475,7 @@
         var igual = r.nivel === 'igual';
         b.classList.add(igual ? 'rv-evi__f--rep' : 'rv-evi__f--par');
         notas.appendChild(K.nodo('<p class="rv-rep ' + (igual ? 'rv-rep--malo' : 'rv-rep--par') + '">' + K.icono(igual ? 'copiar' : 'lupa', 14) + '<span>Evidencia ' + num + ': ' +
-          (igual ? 'igual a la de ' + K.esc(deCuentaEv(r.m, o)) + '.' : 'muy parecida a la de ' + K.esc(deCuentaEv(r.m, o)) + (r.pidiendo && !r.fino ? '. Comparando los archivos…' : '. Compáralas en «Evidencias de cuentas anteriores».')) + '</span></p>'));
+          (igual ? 'igual a la de ' + K.esc(deCuentasEv(r, 'igual', o)) + '.' : 'muy parecida a la de ' + K.esc(deCuentasEv(r, 'parecida', o)) + (r.pidiendo && !r.fino ? '. Comparando los archivos…' : '. Compáralas en «Evidencias de cuentas anteriores».')) + '</span></p>'));
       } else if (ot) {
         notas.appendChild(K.nodo('<p class="rv-rep rv-rep--info">' + K.icono('info', 14) + '<span>Evidencia ' + num + ': parecida a una de ' + K.esc(nombre(ot.nom || 'otro contratista')) +
           (ot.ct ? ' (contrato ' + K.esc(ot.ct) + ')' : '') + ', cuenta ' + ot.i + '. Solo informativo.</span></p>'));
@@ -1471,7 +1486,7 @@
       var num = b.getAttribute('data-adj-n');
       if (r) {
         b.classList.add('rv-arch__b--rep');
-        notas.appendChild(K.nodo('<p class="rv-rep rv-rep--malo">' + K.icono('copiar', 14) + '<span>Adjunto ' + K.esc(num) + ': el mismo archivo de ' + K.esc(deCuentaEv(r.m, o)) + '.</span></p>'));
+        notas.appendChild(K.nodo('<p class="rv-rep rv-rep--malo">' + K.icono('copiar', 14) + '<span>Adjunto ' + K.esc(num) + ': el mismo archivo de ' + K.esc(deCuentasEv(r, 'igual', o)) + '.</span></p>'));
       } else if (ot) {
         notas.appendChild(K.nodo('<p class="rv-rep rv-rep--info">' + K.icono('info', 14) + '<span>Adjunto ' + K.esc(num) + ': el mismo archivo de ' + K.esc(nombre(ot.nom || 'otro contratista')) +
           (ot.ct ? ' (contrato ' + K.esc(ot.ct) + ')' : '') + ', cuenta ' + ot.i + '. Solo informativo.</span></p>'));
@@ -1521,8 +1536,10 @@
       return;
     }
     var rep = repetidasObl(d, o), usadas = {};
-    Object.keys(rep.img).forEach(function (k) { usadas[rep.img[k].m.id] = rep.img[k].nivel; });
-    Object.keys(rep.adj).forEach(function (k) { usadas[rep.adj[k].m.id] = 'igual'; });
+    Object.keys(rep.img).concat(Object.keys(rep.adj)).forEach(function (k) {
+      var r = rep.img[k] || rep.adj[k];
+      (r.todas || [{ m: r.m, nivel: r.nivel }]).forEach(function (t) { if (usadas[t.m.id] !== 'igual') usadas[t.m.id] = t.nivel; });
+    });
     var infs = Object.keys(d.evid.cuentas || {}).map(Number).sort(function (a, b) { return b - a; });
     var hay = 0;
     infs.forEach(function (inf) {
