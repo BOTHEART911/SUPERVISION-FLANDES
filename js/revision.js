@@ -1256,7 +1256,7 @@
   function precargarAnterior() {
     var V = K.piezas.variacion;
     if (!V || !D || !(Number(D.cuenta.informe) > 1)) return null;
-    return V.anteriores('revisionAnterior', { fila: D.cuenta.fila, id: D.cuenta.idContrato, informe: D.cuenta.informe }, claveAnt());
+    return V.anteriores('revisionAnterior', { fila: D.cuenta.fila, id: D.cuenta.idContrato, informe: D.cuenta.informe, ev: 1 }, claveAnt());   /* 02/11 · ev: con las huellas de las evidencias */
   }
   function botonComparar(donde, o) {
     var V = K.piezas.variacion;
@@ -1309,6 +1309,7 @@
         var d = r[0] || {}, I = r[1], per = periodoCuenta(), nC = (D.contrato || {}).contrato || D.cuenta.contrato || '';
         var prev = V.previosDe(d, o.n);
         var R = V.medir(I, o.actividad, V.preparar(I, o.texto, prev, nC), { obl: o.texto, desde: per.desde, hasta: per.hasta, soporte: soporteDe(o), nContrato: nC });
+        R.notaSoporte = textoRep(repetidasObl(d, o), o);   /* 02/11 · "1 imagen repetida de la cuenta 3" */
         caja.innerHTML = '';
         if (R.estado === 'general' || R.estado === 'noreq') {
           caja.appendChild(K.nodo('<p class="rv-bom__t">' + K.icono('grafica', 15) + ' Calidad de la actividad <small>· ' + (R.estado === 'general' ? 'obligación general: no se mide' : 'no requerida en el periodo') + '</small></p>'));
@@ -1342,6 +1343,204 @@
     })['catch'](function () { if (caja.isConnected) caja.remove(); });
   }
 
+  /* ══════════ 02/11 · EVIDENCIAS REPETIDAS ENTRE CUENTAS ══════════
+     Las huellas de las evidencias (imagen: su forma; adjunto: md5 de Drive)
+     llegan con las actividades anteriores, de FONDO (revisionAnterior con
+     ev:1): la pestaña no espera nada y no hay viajes nuevos. Se compara con
+     TODAS las cuentas anteriores del contrato (también si salta cuentas).
+       · Igual a la de una cuenta anterior → marca roja en la evidencia de
+         esta cuenta y el bombillo de soporte lo menciona.
+       · Igual a la de OTRO contrato (p. ej. la foto de una reunión
+         compartida) → solo se informa.
+     "Evidencias de cuentas anteriores" abre la galería por cuenta. */
+  function idEv(u) { var m = /[?&]id=([\w-]{20,})/.exec(u || '') || /\/d\/([\w-]{20,})/.exec(u || ''); return m ? m[1] : ''; }
+  function miniEv(id, w) { return 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(id) + '&sz=w' + (w || 320); }
+  function extEv(nombre) { var m = /\.([a-z0-9]{2,4})$/i.exec(String(nombre || '')); return m ? m[1].toLowerCase() : ''; }
+  function idxEv(d) {
+    var H = K.piezas.huella;
+    if (!H || !d || !d.evid) return null;
+    if (!d._hix) d._hix = H.indice(d);
+    return d._hix;
+  }
+  /** Lo repetido de UNA obligación de esta cuenta. */
+  function repetidasObl(d, o) {
+    var H = K.piezas.huella, out = { img: {}, adj: {}, otros: {}, n: 0 };
+    var ix = idxEv(d);
+    if (!H || !ix) return out;
+    var act = (d.evid.actual || {})[o.n] || {}, mios = {};
+    (act.i || []).forEach(function (x) {
+      mios[x[0]] = 1;
+      if (!x[1]) return;
+      var m = H.buscar(ix, { h64: x[1], h256: x[2] })[0];
+      if (m) { out.img[x[0]] = m; out.n++; }
+    });
+    (act.a || []).forEach(function (x) {
+      mios[x[0]] = 1;
+      if (!x[2]) return;
+      var m = H.buscar(ix, { md5: x[2] })[0];
+      if (m) { out.adj[x[0]] = m; out.n++; }
+    });
+    (d.evid.otros || []).forEach(function (z) { if (mios[z.id] && !out.img[z.id] && !out.adj[z.id]) out.otros[z.id] = z; });
+    return out;
+  }
+  function deCuentaEv(m, o) { return 'la cuenta ' + m.informe + (m.obl && m.obl !== o.n ? ' (obligación ' + m.obl + ')' : ''); }
+  /** "1 imagen repetida de la cuenta 3 · 1 adjunto repetido de la cuenta 5" */
+  function textoRep(rep, o) {
+    function parte(mapa, uno, varios) {
+      var ks = Object.keys(mapa);
+      if (!ks.length) return '';
+      var cs = [];
+      ks.forEach(function (k) { var c = deCuentaEv(mapa[k], o); if (cs.indexOf(c) < 0) cs.push(c); });
+      return (ks.length === 1 ? '1 ' + uno : ks.length + ' ' + varios) + ' de ' + cs.join(' y ');
+    }
+    return [parte(rep.img, 'imagen repetida', 'imágenes repetidas'), parte(rep.adj, 'adjunto repetido', 'adjuntos repetidos')].filter(Boolean).join(' · ');
+  }
+
+  /** Marca, sin tocar nada, lo repetido en la tarjeta de la obligación (cuando llegan las huellas). */
+  function marcarRepetidas(t, o) {
+    if (!K.piezas.huella || !D || !(Number(D.cuenta.informe) > 1)) return;
+    var p = precargarAnterior();
+    if (!p) return;
+    p.then(function (d) {
+      if (!t.isConnected || !d || !d.evid) return;
+      var rep = repetidasObl(d, o);
+      var notas = t.querySelector('.rv-rep-notas');
+      if (notas) notas.remove();
+      notas = K.nodo('<div class="rv-rep-notas" aria-live="polite"></div>');
+      Array.prototype.forEach.call(t.querySelectorAll('[data-ev-id]'), function (b) {
+        var id = b.getAttribute('data-ev-id'), m = rep.img[id], ot = rep.otros[id];
+        var num = b.getAttribute('data-ev-n');
+        if (m) {
+          b.classList.add('rv-evi__f--rep');
+          b.setAttribute('aria-label', b.getAttribute('aria-label') + ' · igual a la de ' + deCuentaEv(m, o));
+          notas.appendChild(K.nodo('<p class="rv-rep rv-rep--malo">' + K.icono('copiar', 14) + '<span>Evidencia ' + num + ': igual a la de ' + K.esc(deCuentaEv(m, o)) + '.</span></p>'));
+        } else if (ot) {
+          notas.appendChild(K.nodo('<p class="rv-rep rv-rep--info">' + K.icono('info', 14) + '<span>Evidencia ' + num + ': igual a una de ' + K.esc(nombre(ot.nom || 'otro contratista')) +
+            (ot.ct ? ' (contrato ' + K.esc(ot.ct) + ')' : '') + ', cuenta ' + ot.i + '. Solo informativo.</span></p>'));
+        }
+      });
+      Array.prototype.forEach.call(t.querySelectorAll('[data-adj-id]'), function (b) {
+        var id = b.getAttribute('data-adj-id'), m = rep.adj[id], ot = rep.otros[id];
+        var num = b.getAttribute('data-adj-n');
+        if (m) {
+          b.classList.add('rv-arch__b--rep');
+          notas.appendChild(K.nodo('<p class="rv-rep rv-rep--malo">' + K.icono('copiar', 14) + '<span>Adjunto ' + K.esc(num) + ': el mismo archivo de ' + K.esc(deCuentaEv(m, o)) + '.</span></p>'));
+        } else if (ot) {
+          notas.appendChild(K.nodo('<p class="rv-rep rv-rep--info">' + K.icono('info', 14) + '<span>Adjunto ' + K.esc(num) + ': el mismo archivo de ' + K.esc(nombre(ot.nom || 'otro contratista')) +
+            (ot.ct ? ' (contrato ' + K.esc(ot.ct) + ')' : '') + ', cuenta ' + ot.i + '. Solo informativo.</span></p>'));
+        }
+      });
+      if (notas.children.length) {
+        var ancla = t.querySelector('.rv-ant') || t.querySelector('.rv-obl__pie');
+        t.insertBefore(notas, ancla);
+      }
+    })['catch'](function () {});
+  }
+
+  /** Botón "Evidencias de cuentas anteriores" con la galería por cuenta. */
+  function botonAnteriores(t, o) {
+    if (!K.piezas.huella || !D || !(Number(D.cuenta.informe) > 1)) return;
+    var caja = K.nodo('<div class="rv-ant"></div>');
+    var b = K.nodo('<button type="button" class="kit-btn kit-btn--plano rv-ant__b" aria-expanded="false">' + K.icono('reloj', 16) + ' Evidencias de cuentas anteriores</button>');
+    var zona = K.nodo('<div class="rv-ant__zona" hidden></div>');
+    var hecho = false;
+    b.addEventListener('click', function () {
+      K.vibrar(8);
+      B.posicion.obligacion = o.n;
+      zona.hidden = !zona.hidden;
+      b.setAttribute('aria-expanded', zona.hidden ? 'false' : 'true');
+      b.innerHTML = K.icono('reloj', 16) + (zona.hidden ? ' Evidencias de cuentas anteriores' : ' Ocultar las evidencias anteriores');
+      if (zona.hidden || hecho) return;
+      zona.innerHTML = '<span class="var-pas var-pas--gen">Trayendo las evidencias anteriores…</span>';
+      var p = precargarAnterior();
+      if (K.vista && K.vista.adoptar && p) K.vista.adoptar(p);
+      Promise.resolve(p).then(function (d) {
+        hecho = true;
+        zona.innerHTML = '';
+        galeriaAnteriores(zona, d, o);
+      })['catch'](function () {
+        V_olvidarAnt();
+        zona.innerHTML = '';
+        zona.appendChild(K.nodo('<p class="var-nada">' + K.icono('aviso', 14) + ' No se pudieron traer las evidencias anteriores. Toca de nuevo para reintentar.</p>'));
+        zona.hidden = true; b.setAttribute('aria-expanded', 'false');
+        b.innerHTML = K.icono('reloj', 16) + ' Evidencias de cuentas anteriores';
+      });
+    });
+    caja.appendChild(b);
+    caja.appendChild(zona);
+    t.insertBefore(caja, t.querySelector('.rv-obl__pie'));
+  }
+  function V_olvidarAnt() { try { K.piezas.variacion.olvidar(claveAnt()); } catch (e) {} }
+
+  function galeriaAnteriores(zona, d, o) {
+    if (!d || !d.evid) {
+      zona.appendChild(K.nodo('<p class="var-nada">Las evidencias anteriores aún no están disponibles en el servidor.</p>'));
+      return;
+    }
+    var rep = repetidasObl(d, o), usadas = {};
+    Object.keys(rep.img).forEach(function (k) { usadas[rep.img[k].id] = 1; });
+    Object.keys(rep.adj).forEach(function (k) { usadas[rep.adj[k].id] = 1; });
+    var infs = Object.keys(d.evid.cuentas || {}).map(Number).sort(function (a, b) { return b - a; });
+    var hay = 0;
+    infs.forEach(function (inf) {
+      var c = (d.evid.cuentas[inf] || {})[o.n];
+      if (!c || (!(c.i || []).length && !(c.a || []).length)) return;
+      hay++;
+      var bloque = K.nodo('<section class="rv-ant__c"><p class="rv-ant__t">Cuenta ' + inf + '</p></section>');
+      var imgs = c.i || [];
+      if (imgs.length) {
+        var fotos = K.nodo('<div class="rv-evi__fotos"></div>');
+        imgs.forEach(function (x, j) {
+          var igual = !!usadas[x[0]];
+          var bt = K.nodo('<button type="button" class="rv-evi__f' + (igual ? ' rv-evi__f--rep' : '') + '" aria-label="Cuenta ' + inf + ' · evidencia ' + (j + 1) +
+            (igual ? ' · igual a una de esta cuenta' : '') + '"><img alt="" loading="lazy"><span>' + (j + 1) + '</span>' +
+            (igual ? '<em class="rv-evi__rep">Igual a esta cuenta</em>' : '') + '</button>');
+          var im = bt.querySelector('img');
+          im.src = miniEv(x[0]);
+          im.addEventListener('error', function () { bt.classList.add('rv-evi__f--rota'); });
+          bt.addEventListener('click', function () {
+            K.piezas.carrusel.abrir(imgs.map(function (y, k) {
+              return { url: miniEv(y[0], 1600), titulo: 'Cuenta ' + inf + ' · obligación ' + o.n + ' · evidencia ' + (k + 1) + ' de ' + imgs.length };
+            }), { indice: j });
+          });
+          fotos.appendChild(bt);
+        });
+        bloque.appendChild(fotos);
+      }
+      var adjs = c.a || [];
+      if (adjs.length) {
+        var lista = K.nodo('<div class="rv-arch__lista"></div>');
+        adjs.forEach(function (x, j) {
+          var ext = extEv(x[1]), igual = !!usadas[x[0]];
+          var ico = ext === 'pdf' ? 'pdf' : (ext === 'xls' || ext === 'xlsx') ? 'hoja' : 'documento';
+          var bA = K.nodo('<button type="button" class="ins-doc rv-arch__b' + (igual ? ' rv-arch__b--rep' : '') + '">' +
+            '<span class="ins-doc__ico">' + K.icono(ico, 20) + '</span>' +
+            '<span class="ins-doc__txt"><b>' + K.esc(sinNumAdj(x[1]) || 'Adjunto') + '</b><small>' + (igual ? 'Es el mismo archivo de esta cuenta' : 'Toca para verlo') + '</small></span></button>');
+          bA.addEventListener('click', function () { verAdjAnterior(adjs, j, inf, o); });
+          lista.appendChild(bA);
+        });
+        bloque.appendChild(lista);
+      }
+      zona.appendChild(bloque);
+    });
+    if (!hay) zona.appendChild(K.nodo('<p class="var-nada">Las cuentas anteriores no tienen evidencias en esta obligación.</p>'));
+    else zona.appendChild(K.nodo('<p class="var-cmp__ley">En rojo, lo que es igual a una evidencia de esta cuenta. Las imágenes se comparan por su forma (aunque el teléfono las haya recomprimido) y los adjuntos por su huella exacta.</p>'));
+  }
+
+  /* Los adjuntos de otras cuentas también están compartidos por enlace: se abren
+     DIRECTO de Drive en el visor (sin Apps Script); si Drive no lo entrega, "Abrir en Drive". */
+  function verAdjAnterior(adjs, j, inf, o) {
+    if (!K.piezas.visor) return;
+    K.piezas.visor.abrir(adjs.map(function (x) {
+      var ext = extEv(x[1]);
+      var it = { titulo: 'Cuenta ' + inf + ' · obligación ' + o.n + ' · ' + sinNumAdj(x[1]), ext: ext,
+        enlace: 'https://drive.google.com/file/d/' + x[0] + '/view', drive: { id: x[0], nombre: x[1] },
+        cargar: function () { return Promise.reject(new Error('Ábrelo en Drive.')); } };
+      if (ext === 'pdf') it.tipo = 'pdf';
+      return it;
+    }), { indice: j });
+  }
+
   function tarjetaObligacion(o, total) {
     var visto = !!B.vistos['obl:' + o.n];
     var t = K.nodo('<article class="kit-tarjeta rv-obl' + (visto ? ' rv-obl--visto' : '') + '" data-obl="' + o.n + '"></article>');
@@ -1360,7 +1559,7 @@
     if (!ev.length) tira.appendChild(K.nodo('<p class="rv-obl__vacia">' + K.icono('imagen', 14) + ' Sin imágenes.</p>'));
     var fotos = K.nodo('<div class="rv-evi__fotos"></div>');
     ev.forEach(function (e, i) {
-      var b = K.nodo('<button type="button" class="rv-evi__f" aria-label="Ver evidencia ' + (i + 1) + ' con zoom"><img alt="" loading="lazy"><span>' + (i + 1) + '</span></button>');
+      var b = K.nodo('<button type="button" class="rv-evi__f" aria-label="Ver evidencia ' + (i + 1) + ' con zoom" data-ev-n="' + (i + 1) + '" data-ev-id="' + K.esc(idEv(e.grande || e.mini)) + '"><img alt="" loading="lazy"><span>' + (i + 1) + '</span></button>');
       var im = b.querySelector('img');
       im.src = e.mini;
       im.addEventListener('error', function () { b.classList.add('rv-evi__f--rota'); });
@@ -1386,7 +1585,7 @@
         var ext = String(ar.ext || '').toLowerCase();
         var ico = ext === 'pdf' ? 'pdf' : (ext === 'xls' || ext === 'xlsx') ? 'hoja' : 'documento';
         var queEs = ext === 'pdf' ? 'PDF' : (ext === 'xls' || ext === 'xlsx') ? 'Excel' : 'Word';
-        var bA = K.nodo('<button type="button" class="ins-doc rv-arch__b" aria-label="Ver el adjunto ' + K.esc(numAdj(ar)) + ' de la obligación ' + o.n + '">' +
+        var bA = K.nodo('<button type="button" class="ins-doc rv-arch__b" data-adj-id="' + K.esc(ar.id) + '" data-adj-n="' + K.esc(numAdj(ar)) + '" aria-label="Ver el adjunto ' + K.esc(numAdj(ar)) + ' de la obligación ' + o.n + '">' +
           '<span class="rv-arch__num">' + K.esc(numAdj(ar)) + '</span>' +
           '<span class="ins-doc__ico">' + K.icono(ico, 20) + '</span>' +
           '<span class="ins-doc__txt"><b>' + K.esc(sinNumAdj(ar.nombre)) + '</b><small>' + queEs + ' · toca para verlo</small></span></button>');
@@ -1421,6 +1620,8 @@
     });
     pie.appendChild(bv);
     t.appendChild(pie);
+    botonAnteriores(t, o);   /* 02/11 · galería de las evidencias de cuentas anteriores */
+    marcarRepetidas(t, o);   /* 02/11 · marca roja en lo repetido (llega de fondo) */
     return t;
   }
 
