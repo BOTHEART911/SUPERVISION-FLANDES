@@ -5,6 +5,24 @@
    Generado desde la semilla: no se edita a mano. */
 window.ASISTENTE_BASE = [
 {
+"id": "S-TEAYUDO",
+"app": "SUPERVISION",
+"vista": "cuenta,revisar",
+"titulo": "¿Qué es «Lo que Te ayudo le indica al contratista»?",
+"frases": [
+"te ayudo",
+"pista del contratista",
+"que le indico la app",
+"lo que te ayudo le indica",
+"corchetes en la actividad"
+],
+"respuesta": "Debajo de los bombillos de cada actividad, **Lo que «Te ayudo» le indica al contratista** muestra la misma pista que el botón **Te ayudo** del borrador le da con ese texto: qué le falta (cuántos, para quién, qué quedó, cuándo, soporte) con ejemplos entre [corchetes]. Sirve para que tu observación coincida con lo que la app ya le pidió. El contratista no puede radicar con datos entre [corchetes] sin llenar. Es una guía: no reemplaza tu revisión.",
+"accion": "",
+"estado": "",
+"activo": true,
+"orden": 71
+},
+{
 "id": "S-BOMBILLOS",
 "app": "SUPERVISION",
 "vista": "cuenta,revisar",

@@ -1323,6 +1323,16 @@
           if (k >= 0) ver.innerHTML = V.resaltar(o.actividad, rangos, k === 0 ? 'var-rep' : 'var-hit');
         }));
         caja.appendChild(ver);
+        /* 02/11 · «Te ayudo»: la misma pista que el botón le da al contratista con este texto */
+        var TA = K.piezas.teayudo;
+        try { if (TA && TA.hayRojo(R)) {
+          var pis = TA.pistas(R, o.texto, o.actividad);
+          if (pis.length) {
+            var dt = K.nodo('<details class="rv-bom__ta"><summary>' + K.icono('lapiz', 14) + ' Lo que «Te ayudo» le indica al contratista</summary><ul class="ta__pistas" role="list"></ul></details>');
+            pis.forEach(function (x) { dt.querySelector('ul').appendChild(K.nodo('<li class="ta__p ta__p--' + x.e + '"><span class="ta__luz" aria-hidden="true"></span><span>' + K.esc(x.txt) + (x.ej ? ' <small>Ejemplo: <mark class="ta-hueco">' + K.esc(x.ej) + '</mark></small>' : '') + '</span></li>')); });
+            caja.appendChild(dt);
+          }
+        } } catch (eTa) { /* la pista nunca tumba los bombillos */ }
         caja.appendChild(K.nodo('<p class="var-cmp__ley">Guía automática: se mide la <b>forma</b> de escribir, no el vocabulario (repetir los términos de la obligación no cuenta). Toca un bombillo para ver el fragmento. No reemplaza tu revisión.</p>'));
       } catch (e) { caja.remove(); }
     })['catch'](function () { if (caja.isConnected) caja.remove(); });
