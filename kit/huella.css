@@ -16,3 +16,8 @@
 .rv-ant__c { padding: 10px; border: 1px solid var(--k-linea); border-radius: var(--k-r-md); background: var(--k-papel); }
 .rv-ant__t { margin: 0 0 8px; font: 700 .82rem/1.2 var(--k-fuente); color: var(--k-apagado); text-transform: uppercase; letter-spacing: .04em; }
 .rv-ant__c .rv-arch__lista { margin-top: 8px; }
+/* muy parecida (ámbar): lo decide quien revisa, mirándolas lado a lado */
+.rv-evi__f--par { outline: 3px solid var(--k-aviso); outline-offset: 1px; }
+.rv-evi__rep--par { background: var(--k-aviso); color: #1c1300; }
+.rv-rep--par { background: var(--k-aviso-fondo); color: var(--k-tinta); font-weight: 600; }
+.rv-rep--par svg { color: var(--k-aviso); }

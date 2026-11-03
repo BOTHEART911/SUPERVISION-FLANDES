@@ -1346,13 +1346,19 @@
   /* ══════════ 02/11 · EVIDENCIAS REPETIDAS ENTRE CUENTAS ══════════
      Las huellas de las evidencias (imagen: su forma; adjunto: md5 de Drive)
      llegan con las actividades anteriores, de FONDO (revisionAnterior con
-     ev:1): la pestaña no espera nada y no hay viajes nuevos. Se compara con
-     TODAS las cuentas anteriores del contrato (también si salta cuentas).
-       · Igual a la de una cuenta anterior → marca roja en la evidencia de
-         esta cuenta y el bombillo de soporte lo menciona.
+     ev:1): la pestaña no espera y no hay viajes nuevos al CORE. Se compara
+     con TODAS las cuentas anteriores del contrato (también si salta cuentas).
+       · Adjunto con el mismo md5 → «Igual» (rojo).
+       · Imagen parecida por su forma → «Muy parecida» (ámbar) mientras el
+         navegador compara los dos archivos de verdad (directo de Drive, de
+         a uno, de fondo). Si son la misma imagen → «Igual» (rojo). Dos
+         capturas del mismo formulario con otros datos se quedan en ámbar:
+         a esa escala se ven iguales y no se acusa sin certeza.
        · Igual a la de OTRO contrato (p. ej. la foto de una reunión
          compartida) → solo se informa.
-     "Evidencias de cuentas anteriores" abre la galería por cuenta. */
+     El bombillo de soporte lo menciona. "Evidencias de cuentas anteriores"
+     abre la galería por cuenta. Nada de esto toca la revisión guardada. */
+  var REP = {};   /* 'cuenta|obl' -> estado de lo repetido de esa obligación */
   function idEv(u) { var m = /[?&]id=([\w-]{20,})/.exec(u || '') || /\/d\/([\w-]{20,})/.exec(u || ''); return m ? m[1] : ''; }
   function miniEv(id, w) { return 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(id) + '&sz=w' + (w || 320); }
   function extEv(nombre) { var m = /\.([a-z0-9]{2,4})$/i.exec(String(nombre || '')); return m ? m[1].toLowerCase() : ''; }
@@ -1362,38 +1368,57 @@
     if (!d._hix) d._hix = H.indice(d);
     return d._hix;
   }
-  /** Lo repetido de UNA obligación de esta cuenta. */
+  /** Lo repetido de UNA obligación de esta cuenta: {img:{id:{m, nivel}}, adj:{...}, otros:{...}}. */
   function repetidasObl(d, o) {
-    var H = K.piezas.huella, out = { img: {}, adj: {}, otros: {}, n: 0 };
+    var llave = (D ? D.cuenta.idContrato + ':' + D.cuenta.informe : '') + '|' + o.n;
+    if (REP[llave] && REP[llave].d === d) return REP[llave];
+    var H = K.piezas.huella, out = { d: d, img: {}, adj: {}, otros: {} };
     var ix = idxEv(d);
-    if (!H || !ix) return out;
-    var act = (d.evid.actual || {})[o.n] || {}, mios = {};
-    (act.i || []).forEach(function (x) {
-      mios[x[0]] = 1;
-      if (!x[1]) return;
-      var m = H.buscar(ix, { h64: x[1], h256: x[2] })[0];
-      if (m) { out.img[x[0]] = m; out.n++; }
-    });
-    (act.a || []).forEach(function (x) {
-      mios[x[0]] = 1;
-      if (!x[2]) return;
-      var m = H.buscar(ix, { md5: x[2] })[0];
-      if (m) { out.adj[x[0]] = m; out.n++; }
-    });
-    (d.evid.otros || []).forEach(function (z) { if (mios[z.id] && !out.img[z.id] && !out.adj[z.id]) out.otros[z.id] = z; });
+    if (H && ix) {
+      var act = (d.evid.actual || {})[o.n] || {}, mios = {};
+      (act.i || []).forEach(function (x) {
+        mios[x[0]] = 1;
+        if (!x[1] || x[1] === 'ERR') return;
+        var m = H.buscar(ix, { h64: x[1], h256: x[2] })[0];
+        if (m) out.img[x[0]] = { m: m, nivel: 'parecida' };
+      });
+      (act.a || []).forEach(function (x) {
+        mios[x[0]] = 1;
+        if (!x[2]) return;
+        var m = H.buscar(ix, { md5: x[2] })[0];
+        if (m) out.adj[x[0]] = { m: m, nivel: 'igual' };
+      });
+      (d.evid.otros || []).forEach(function (z) { if (mios[z.id] && !out.img[z.id] && !out.adj[z.id]) out.otros[z.id] = z; });
+    }
+    REP[llave] = out;
     return out;
   }
   function deCuentaEv(m, o) { return 'la cuenta ' + m.informe + (m.obl && m.obl !== o.n ? ' (obligación ' + m.obl + ')' : ''); }
-  /** "1 imagen repetida de la cuenta 3 · 1 adjunto repetido de la cuenta 5" */
+  /** "1 imagen repetida de la cuenta 3 · 1 muy parecida a la de la cuenta 5" */
   function textoRep(rep, o) {
-    function parte(mapa, uno, varios) {
-      var ks = Object.keys(mapa);
+    function parte(mapa, nivel, uno, varios, union) {
+      var ks = Object.keys(mapa).filter(function (k) { return mapa[k].nivel === nivel; });
       if (!ks.length) return '';
       var cs = [];
-      ks.forEach(function (k) { var c = deCuentaEv(mapa[k], o); if (cs.indexOf(c) < 0) cs.push(c); });
-      return (ks.length === 1 ? '1 ' + uno : ks.length + ' ' + varios) + ' de ' + cs.join(' y ');
+      ks.forEach(function (k) { var c = deCuentaEv(mapa[k].m, o); if (cs.indexOf(c) < 0) cs.push(c); });
+      return (ks.length === 1 ? '1 ' + uno : ks.length + ' ' + varios) + union + cs.join(' y ');
     }
-    return [parte(rep.img, 'imagen repetida', 'imágenes repetidas'), parte(rep.adj, 'adjunto repetido', 'adjuntos repetidos')].filter(Boolean).join(' · ');
+    return [parte(rep.img, 'igual', 'imagen repetida', 'imágenes repetidas', ' de '),
+            parte(rep.adj, 'igual', 'adjunto repetido', 'adjuntos repetidos', ' de '),
+            parte(rep.img, 'parecida', 'imagen muy parecida', 'imágenes muy parecidas', ' a la de ')].filter(Boolean).join(' · ');
+  }
+
+  /* las comparaciones finas, de a una (son descargas de Drive) */
+  var COLA_FINA = [], FINA_OCUPADA = false;
+  function encolarFina(fn) {
+    COLA_FINA.push(fn);
+    if (!FINA_OCUPADA) siguienteFina();
+  }
+  function siguienteFina() {
+    var fn = COLA_FINA.shift();
+    if (!fn) { FINA_OCUPADA = false; return; }
+    FINA_OCUPADA = true;
+    Promise.resolve().then(fn).then(siguienteFina, siguienteFina);
   }
 
   /** Marca, sin tocar nada, lo repetido en la tarjeta de la obligación (cuando llegan las huellas). */
@@ -1401,40 +1426,61 @@
     if (!K.piezas.huella || !D || !(Number(D.cuenta.informe) > 1)) return;
     var p = precargarAnterior();
     if (!p) return;
+    var cuenta = D.cuenta;
     p.then(function (d) {
       if (!t.isConnected || !d || !d.evid) return;
       var rep = repetidasObl(d, o);
-      var notas = t.querySelector('.rv-rep-notas');
-      if (notas) notas.remove();
-      notas = K.nodo('<div class="rv-rep-notas" aria-live="polite"></div>');
-      Array.prototype.forEach.call(t.querySelectorAll('[data-ev-id]'), function (b) {
-        var id = b.getAttribute('data-ev-id'), m = rep.img[id], ot = rep.otros[id];
-        var num = b.getAttribute('data-ev-n');
-        if (m) {
-          b.classList.add('rv-evi__f--rep');
-          b.setAttribute('aria-label', b.getAttribute('aria-label') + ' · igual a la de ' + deCuentaEv(m, o));
-          notas.appendChild(K.nodo('<p class="rv-rep rv-rep--malo">' + K.icono('copiar', 14) + '<span>Evidencia ' + num + ': igual a la de ' + K.esc(deCuentaEv(m, o)) + '.</span></p>'));
-        } else if (ot) {
-          notas.appendChild(K.nodo('<p class="rv-rep rv-rep--info">' + K.icono('info', 14) + '<span>Evidencia ' + num + ': igual a una de ' + K.esc(nombre(ot.nom || 'otro contratista')) +
-            (ot.ct ? ' (contrato ' + K.esc(ot.ct) + ')' : '') + ', cuenta ' + ot.i + '. Solo informativo.</span></p>'));
-        }
+      pintarRepetidas(t, o, rep);
+      /* las parecidas se comprueban con los archivos (de fondo) */
+      Object.keys(rep.img).forEach(function (id) {
+        var r = rep.img[id];
+        if (r.nivel !== 'parecida' || r.pidiendo) return;
+        r.pidiendo = true;
+        encolarFina(function () {
+          if (!t.isConnected || D.cuenta !== cuenta) return null;
+          return K.piezas.huella.confirmar(id, r.m.id, d.evid.umbral).then(function (f) {
+            r.fino = f;
+            if (f && f.igual) r.nivel = 'igual';
+            if (t.isConnected) pintarRepetidas(t, o, rep);
+          }, function () { /* sin Drive: se queda en «muy parecida» */ });
+        });
       });
-      Array.prototype.forEach.call(t.querySelectorAll('[data-adj-id]'), function (b) {
-        var id = b.getAttribute('data-adj-id'), m = rep.adj[id], ot = rep.otros[id];
-        var num = b.getAttribute('data-adj-n');
-        if (m) {
-          b.classList.add('rv-arch__b--rep');
-          notas.appendChild(K.nodo('<p class="rv-rep rv-rep--malo">' + K.icono('copiar', 14) + '<span>Adjunto ' + K.esc(num) + ': el mismo archivo de ' + K.esc(deCuentaEv(m, o)) + '.</span></p>'));
-        } else if (ot) {
-          notas.appendChild(K.nodo('<p class="rv-rep rv-rep--info">' + K.icono('info', 14) + '<span>Adjunto ' + K.esc(num) + ': el mismo archivo de ' + K.esc(nombre(ot.nom || 'otro contratista')) +
-            (ot.ct ? ' (contrato ' + K.esc(ot.ct) + ')' : '') + ', cuenta ' + ot.i + '. Solo informativo.</span></p>'));
-        }
-      });
-      if (notas.children.length) {
-        var ancla = t.querySelector('.rv-ant') || t.querySelector('.rv-obl__pie');
-        t.insertBefore(notas, ancla);
-      }
     })['catch'](function () {});
+  }
+
+  function pintarRepetidas(t, o, rep) {
+    var notas = t.querySelector('.rv-rep-notas');
+    if (notas) notas.remove();
+    notas = K.nodo('<div class="rv-rep-notas" aria-live="polite"></div>');
+    Array.prototype.forEach.call(t.querySelectorAll('[data-ev-id]'), function (b) {
+      var id = b.getAttribute('data-ev-id'), r = rep.img[id], ot = rep.otros[id];
+      var num = b.getAttribute('data-ev-n');
+      b.classList.remove('rv-evi__f--rep', 'rv-evi__f--par');
+      if (r) {
+        var igual = r.nivel === 'igual';
+        b.classList.add(igual ? 'rv-evi__f--rep' : 'rv-evi__f--par');
+        notas.appendChild(K.nodo('<p class="rv-rep ' + (igual ? 'rv-rep--malo' : 'rv-rep--par') + '">' + K.icono(igual ? 'copiar' : 'lupa', 14) + '<span>Evidencia ' + num + ': ' +
+          (igual ? 'igual a la de ' + K.esc(deCuentaEv(r.m, o)) + '.' : 'muy parecida a la de ' + K.esc(deCuentaEv(r.m, o)) + (r.pidiendo && !r.fino ? '. Comparando los archivos…' : '. Compáralas en «Evidencias de cuentas anteriores».')) + '</span></p>'));
+      } else if (ot) {
+        notas.appendChild(K.nodo('<p class="rv-rep rv-rep--info">' + K.icono('info', 14) + '<span>Evidencia ' + num + ': parecida a una de ' + K.esc(nombre(ot.nom || 'otro contratista')) +
+          (ot.ct ? ' (contrato ' + K.esc(ot.ct) + ')' : '') + ', cuenta ' + ot.i + '. Solo informativo.</span></p>'));
+      }
+    });
+    Array.prototype.forEach.call(t.querySelectorAll('[data-adj-id]'), function (b) {
+      var id = b.getAttribute('data-adj-id'), r = rep.adj[id], ot = rep.otros[id];
+      var num = b.getAttribute('data-adj-n');
+      if (r) {
+        b.classList.add('rv-arch__b--rep');
+        notas.appendChild(K.nodo('<p class="rv-rep rv-rep--malo">' + K.icono('copiar', 14) + '<span>Adjunto ' + K.esc(num) + ': el mismo archivo de ' + K.esc(deCuentaEv(r.m, o)) + '.</span></p>'));
+      } else if (ot) {
+        notas.appendChild(K.nodo('<p class="rv-rep rv-rep--info">' + K.icono('info', 14) + '<span>Adjunto ' + K.esc(num) + ': el mismo archivo de ' + K.esc(nombre(ot.nom || 'otro contratista')) +
+          (ot.ct ? ' (contrato ' + K.esc(ot.ct) + ')' : '') + ', cuenta ' + ot.i + '. Solo informativo.</span></p>'));
+      }
+    });
+    if (notas.children.length) t.insertBefore(notas, t.querySelector('.rv-ant') || t.querySelector('.rv-obl__pie'));
+    /* el bombillo de soporte de esta obligación lo dice */
+    var txt = textoRep(rep, o), sm = t.querySelector('.var-bom__rep');
+    if (sm) { if (txt) sm.textContent = txt; else sm.remove(); }
   }
 
   /** Botón "Evidencias de cuentas anteriores" con la galería por cuenta. */
@@ -1443,23 +1489,21 @@
     var caja = K.nodo('<div class="rv-ant"></div>');
     var b = K.nodo('<button type="button" class="kit-btn kit-btn--plano rv-ant__b" aria-expanded="false">' + K.icono('reloj', 16) + ' Evidencias de cuentas anteriores</button>');
     var zona = K.nodo('<div class="rv-ant__zona" hidden></div>');
-    var hecho = false;
     b.addEventListener('click', function () {
       K.vibrar(8);
       B.posicion.obligacion = o.n;
       zona.hidden = !zona.hidden;
       b.setAttribute('aria-expanded', zona.hidden ? 'false' : 'true');
       b.innerHTML = K.icono('reloj', 16) + (zona.hidden ? ' Evidencias de cuentas anteriores' : ' Ocultar las evidencias anteriores');
-      if (zona.hidden || hecho) return;
+      if (zona.hidden) return;
       zona.innerHTML = '<span class="var-pas var-pas--gen">Trayendo las evidencias anteriores…</span>';
       var p = precargarAnterior();
       if (K.vista && K.vista.adoptar && p) K.vista.adoptar(p);
       Promise.resolve(p).then(function (d) {
-        hecho = true;
         zona.innerHTML = '';
         galeriaAnteriores(zona, d, o);
       })['catch'](function () {
-        V_olvidarAnt();
+        try { K.piezas.variacion.olvidar(claveAnt()); } catch (e) {}
         zona.innerHTML = '';
         zona.appendChild(K.nodo('<p class="var-nada">' + K.icono('aviso', 14) + ' No se pudieron traer las evidencias anteriores. Toca de nuevo para reintentar.</p>'));
         zona.hidden = true; b.setAttribute('aria-expanded', 'false');
@@ -1470,16 +1514,15 @@
     caja.appendChild(zona);
     t.insertBefore(caja, t.querySelector('.rv-obl__pie'));
   }
-  function V_olvidarAnt() { try { K.piezas.variacion.olvidar(claveAnt()); } catch (e) {} }
 
   function galeriaAnteriores(zona, d, o) {
     if (!d || !d.evid) {
-      zona.appendChild(K.nodo('<p class="var-nada">Las evidencias anteriores aún no están disponibles en el servidor.</p>'));
+      zona.appendChild(K.nodo('<p class="var-nada">Las evidencias anteriores aún no están disponibles.</p>'));
       return;
     }
     var rep = repetidasObl(d, o), usadas = {};
-    Object.keys(rep.img).forEach(function (k) { usadas[rep.img[k].id] = 1; });
-    Object.keys(rep.adj).forEach(function (k) { usadas[rep.adj[k].id] = 1; });
+    Object.keys(rep.img).forEach(function (k) { usadas[rep.img[k].m.id] = rep.img[k].nivel; });
+    Object.keys(rep.adj).forEach(function (k) { usadas[rep.adj[k].m.id] = 'igual'; });
     var infs = Object.keys(d.evid.cuentas || {}).map(Number).sort(function (a, b) { return b - a; });
     var hay = 0;
     infs.forEach(function (inf) {
@@ -1491,10 +1534,11 @@
       if (imgs.length) {
         var fotos = K.nodo('<div class="rv-evi__fotos"></div>');
         imgs.forEach(function (x, j) {
-          var igual = !!usadas[x[0]];
-          var bt = K.nodo('<button type="button" class="rv-evi__f' + (igual ? ' rv-evi__f--rep' : '') + '" aria-label="Cuenta ' + inf + ' · evidencia ' + (j + 1) +
-            (igual ? ' · igual a una de esta cuenta' : '') + '"><img alt="" loading="lazy"><span>' + (j + 1) + '</span>' +
-            (igual ? '<em class="rv-evi__rep">Igual a esta cuenta</em>' : '') + '</button>');
+          var nivel = usadas[x[0]] || '';
+          var et = nivel === 'igual' ? 'Igual a esta cuenta' : nivel === 'parecida' ? 'Muy parecida' : '';
+          var bt = K.nodo('<button type="button" class="rv-evi__f' + (nivel === 'igual' ? ' rv-evi__f--rep' : nivel ? ' rv-evi__f--par' : '') + '" aria-label="Cuenta ' + inf + ' · evidencia ' + (j + 1) +
+            (et ? ' · ' + et.toLowerCase() : '') + '"><img alt="" loading="lazy"><span>' + (j + 1) + '</span>' +
+            (et ? '<em class="rv-evi__rep' + (nivel === 'igual' ? '' : ' rv-evi__rep--par') + '">' + et + '</em>' : '') + '</button>');
           var im = bt.querySelector('img');
           im.src = miniEv(x[0]);
           im.addEventListener('error', function () { bt.classList.add('rv-evi__f--rota'); });
@@ -1524,7 +1568,7 @@
       zona.appendChild(bloque);
     });
     if (!hay) zona.appendChild(K.nodo('<p class="var-nada">Las cuentas anteriores no tienen evidencias en esta obligación.</p>'));
-    else zona.appendChild(K.nodo('<p class="var-cmp__ley">En rojo, lo que es igual a una evidencia de esta cuenta. Las imágenes se comparan por su forma (aunque el teléfono las haya recomprimido) y los adjuntos por su huella exacta.</p>'));
+    else zona.appendChild(K.nodo('<p class="var-cmp__ley">En rojo, lo que es igual a una evidencia de esta cuenta; en ámbar, lo muy parecido (por ejemplo, la misma pantalla con otros datos): compáralas. Las imágenes se comparan por su forma y luego archivo contra archivo; los adjuntos, por su huella exacta.</p>'));
   }
 
   /* Los adjuntos de otras cuentas también están compartidos por enlace: se abren
