@@ -1400,6 +1400,7 @@
     if (l.length < 2) return deCuentaEv(l[0] || r.m, o);
     var ns = [];
     l.forEach(function (m) { if (ns.indexOf(m.informe) < 0) ns.push(m.informe); });
+    ns.sort(function (x, y) { return y - x; });
     return ns.length < 2 ? deCuentaEv(l[0], o) : 'las cuentas ' + ns.slice(0, -1).join(', ') + ' y ' + ns[ns.length - 1];
   }
   /** "1 imagen repetida de la cuenta 3 · 1 muy parecida a la de la cuenta 5" */
@@ -1407,9 +1408,17 @@
     function parte(mapa, nivel, uno, varios, union) {
       var ks = Object.keys(mapa).filter(function (k) { return mapa[k].nivel === nivel; });
       if (!ks.length) return '';
-      var cs = [];
-      ks.forEach(function (k) { var c = deCuentaEv(mapa[k].m, o); if (cs.indexOf(c) < 0) cs.push(c); });
-      return (ks.length === 1 ? '1 ' + uno : ks.length + ' ' + varios) + union + cs.join(' y ');
+      var ms = [], ns = [];
+      ks.forEach(function (k) {
+        var r = mapa[k];
+        (r.todas || [{ m: r.m, nivel: r.nivel }]).forEach(function (t) {
+          if (t.nivel === nivel && ns.indexOf(t.m.informe) < 0) { ns.push(t.m.informe); ms.push(t.m); }
+        });
+      });
+      ns.sort(function (x, y) { return y - x; });
+      var cs = ns.length < 2 ? deCuentaEv(ms[0] || mapa[ks[0]].m, o)
+        : 'las cuentas ' + ns.slice(0, -1).join(', ') + ' y ' + ns[ns.length - 1];
+      return (ks.length === 1 ? '1 ' + uno : ks.length + ' ' + varios) + union + cs;
     }
     return [parte(rep.img, 'igual', 'imagen repetida', 'imágenes repetidas', ' de '),
             parte(rep.adj, 'igual', 'adjunto repetido', 'adjuntos repetidos', ' de '),
