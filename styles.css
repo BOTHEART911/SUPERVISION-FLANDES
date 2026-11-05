@@ -2883,6 +2883,10 @@
 .cpt__punto { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: cptLatido 1.1s ease-in-out infinite; }
 @keyframes cptLatido { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .cpt__punto { animation: none; } }
+/* 05/11 · el informe de revisión que falla: se dice y se reintenta */
+.cpt__mal { display: inline-flex; align-items: center; gap: 6px; font-size: .8rem; color: var(--k-malo); flex: 1 1 100%; }
+.cpt__mal svg { flex: none; }
+.cpt__re { min-height: 36px; padding: 6px 12px; font-size: .82rem; }
 .rv-dec .cpt { padding: 10px 12px; }
 .cpt__ayuda { font-size: .78rem; opacity: .85; margin: 0; }
 .cpt__contra { color: var(--k-malo); display: flex; align-items: flex-start; gap: 8px; font: 600 .84rem/1.4 var(--k-fuente); }
