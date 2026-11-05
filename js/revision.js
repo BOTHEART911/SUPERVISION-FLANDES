@@ -1318,9 +1318,18 @@
         var v = V.verdes(R);
         caja.appendChild(K.nodo('<p class="rv-bom__t">' + K.icono('grafica', 15) + ' Calidad de la actividad <small>· ' + v.v + ' de ' + v.n + ' en verde</small></p>'));
         var ver = K.nodo('<div class="var-bor__ver" hidden></div>');
-        caja.appendChild(V.bombillos(R, 'revisor', function (k, rangos) {
+        caja.appendChild(V.bombillos(R, 'revisor', function (k, rangos, b) {
           ver.hidden = k < 0;
-          if (k >= 0) ver.innerHTML = V.resaltar(o.actividad, rangos, k === 0 ? 'var-rep' : 'var-hit');
+          ver.innerHTML = '';
+          if (k < 0) return;
+          if (rangos && rangos.length) ver.innerHTML = V.resaltar(o.actividad, rangos, k === 0 ? 'var-rep' : 'var-hit');
+          /* 05/11 · rojo o ámbar: qué falta + frase sugerida + «Pasar a la observación para el contratista» */
+          try { var TR = K.piezas.teayudo, pr = TR && TR.panelRevisor && b && TR.panelRevisor({
+            R: R, obl: o.texto, texto: o.actividad, b: b, app: (window.MARCA || {}).APP || '', n: o.n, informe: D.cuenta.informe,
+            puede: !!D.cuenta.porRevisar,
+            yaPasada: function (t) { return notasDe('obligacion', o.n).some(function (x) { return esObs(x) && x.texto === t; }); },
+            alPasar: function (t) { return pasarObservacion(o, t, caja); }
+          }); if (pr) { ver.appendChild(pr); ver.hidden = false; } } catch (eR) { /* la receta nunca tumba los bombillos */ }
         }));
         caja.appendChild(ver);
         /* 02/11 · «Te ayudo»: la misma pista que el botón le da al contratista con este texto */
@@ -1333,9 +1342,34 @@
             caja.appendChild(dt);
           }
         } } catch (eTa) { /* la pista nunca tumba los bombillos */ }
-        caja.appendChild(K.nodo('<p class="var-cmp__ley">Guía automática: se mide la <b>forma</b> de escribir, no el vocabulario (repetir los términos de la obligación no cuenta). Toca un bombillo para ver el fragmento. No reemplaza tu revisión.</p>'));
+        caja.appendChild(K.nodo('<p class="var-cmp__ley">Guía automática: se mide la <b>forma</b> de escribir, no el vocabulario (repetir los términos de la obligación no cuenta). Toca un bombillo: en verde ves el fragmento; en rojo o ámbar, qué falta y una frase sugerida para pasarla al contratista. No reemplaza tu revisión.</p>'));
       } catch (e) { caja.remove(); }
     })['catch'](function () { if (caja.isConnected) caja.remove(); });
+  }
+
+  /**
+   * 05/11 · «Pasar a la observación para el contratista» desde un bombillo rojo.
+   * Queda como OBSERVACIÓN PARA EL CONTRATISTA de esa obligación en la bitácora
+   * local (se guarda con la revisión, como cualquier nota; sin viaje aquí) y la
+   * tarjeta se pone al día en su sitio, sin repintar la pestaña ni mover el scroll.
+   */
+  function pasarObservacion(o, texto, desde) {
+    if (!D || !D.cuenta.porRevisar || !texto) return false;
+    if (notasDe('obligacion', o.n).some(function (x) { return esObs(x) && x.texto === texto; })) return true;
+    nuevaNota('obligacion', o.n, 'Obligación ' + o.n, texto, 'contratista');
+    var t = desde && desde.closest ? desde.closest('.rv-obl') : null;
+    if (t) {
+      var viejo = t.querySelector(':scope > .rv-notas');
+      var nueva = listaNotas(notasDe('obligacion', o.n), true);
+      var pie = t.querySelector(':scope > .rv-obl__pie');
+      if (viejo) viejo.parentNode.replaceChild(nueva, viejo); else if (pie) t.insertBefore(nueva, pie);
+      var bs = pie && pie.querySelector('.rv-nota-bs');
+      if (bs) bs.parentNode.replaceChild(botonesNota('obligacion', o.n, 'Obligación ' + o.n), bs);
+    }
+    var s = document.querySelector('.rv-saltos .rv-salto:nth-child(' + o.n + ')');
+    if (s) s.classList.add('rv-salto--nota');
+    refrescarCuentas();
+    return true;
   }
 
   /** 02/11 · en TOMAR DECISIÓN: la calidad de las actividades por obligación (los 6 bombillos), con el mismo motor. */
