@@ -2217,6 +2217,8 @@
         listo: { titulo: eleccion === 'VISTO BUENO' ? 'Visto bueno guardado' : 'Inconsistencia guardada', paso: 'El supervisor lo ve en la tarjeta' }
       }).then(function (r) {
         D.revision = r.revision;
+        /* 05/11 · el revisor que no decide avisa al grupo del contrato: sale DESPUÉS de responder */
+        if (r.cola) mandarAvisos(r.cola, 'guardado tu concepto');
         K.guardar.borrar(borradorK());
         var pos = B.posicion;
         iniciarBitacora();
