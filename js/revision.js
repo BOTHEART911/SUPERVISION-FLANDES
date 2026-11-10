@@ -1482,6 +1482,22 @@
     Promise.resolve().then(fn).then(siguienteFina, siguienteFina);
   }
 
+  /** 10/11 · Si el contratista redactó esta actividad con «Redactemos una actividad juntos», una marca
+      discreta (la marca NO va en su texto: llega con las actividades anteriores, de fondo). */
+  function marcarAsistente(t, o) {
+    if (!D) return;
+    var p = precargarAnterior();
+    if (!p) return;
+    p.then(function (d) {
+      if (!t.isConnected || !d || !(d.asistente instanceof Array) || d.asistente.indexOf(Number(o.n)) < 0) return;
+      if (t.querySelector('.rv-asis')) return;
+      var m = K.nodo('<p class="rv-asis" title="El contratista respondió preguntas (cuántos, para quién, cuándo, evidencia y detalles) y con sus respuestas se armó el párrafo. Revisa que coincida con sus soportes.">' +
+        K.icono('robot', 15) + '<span>Redactada con el asistente, con las respuestas del contratista</span></p>');
+      var txt = t.querySelector('.rv-obl__txt');
+      if (txt && txt.parentNode) txt.parentNode.insertBefore(m, txt); else t.insertBefore(m, t.firstChild.nextSibling);
+    }, function () {});
+  }
+
   /** Marca, sin tocar nada, lo repetido en la tarjeta de la obligación (cuando llegan las huellas). */
   function marcarRepetidas(t, o) {
     if (!K.piezas.huella || !D || !(Number(D.cuenta.informe) > 1)) return;
@@ -1736,6 +1752,7 @@
     t.appendChild(pie);
     botonAnteriores(t, o);   /* 02/11 · galería de las evidencias de cuentas anteriores */
     marcarRepetidas(t, o);   /* 02/11 · marca roja en lo repetido (llega de fondo) */
+    marcarAsistente(t, o);   /* 10/11 · «Redactada con el asistente» (llega de fondo) */
     return t;
   }
 

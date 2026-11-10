@@ -2905,3 +2905,7 @@
 .rv-bom { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--k-linea); display: grid; gap: 6px; }
 .rv-bom__t { margin: 0; display: flex; align-items: center; gap: 6px; font-size: .78rem; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; color: var(--k-tinta); }
 .rv-bom__t small { font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--k-apagado); }
+
+/* 10/11 · actividad redactada con «Redactemos una actividad juntos» (marca discreta para el revisor) */
+.rv-asis { display: inline-flex; align-items: center; gap: 6px; margin: 0 0 6px; padding: 3px 10px 3px 7px; border-radius: 999px; background: var(--k-papel-2); border: 1px solid var(--k-linea); color: var(--k-tinta-2); font-size: .74rem; font-weight: 600; width: fit-content; }
+.rv-asis svg { color: var(--k-marca); flex: 0 0 auto; }
