@@ -1258,6 +1258,33 @@
     if (!V || !D || !(Number(D.cuenta.informe) > 1)) return null;
     return V.anteriores('revisionAnterior', { fila: D.cuenta.fila, id: D.cuenta.idContrato, informe: D.cuenta.informe, ev: 1 }, claveAnt());   /* 02/11 · ev: con las huellas de las evidencias */
   }
+  /*
+   * 10/11 · CALIDAD DEL PRIMER FILTRO: la FOTO de la cuenta con los 6 bombillos
+   * (mismo motor) viaja con «Aprobar». Se calcula al abrir Tomar decisión, con las
+   * anteriores que ya están de fondo: confirmar no espera nada. Si no alcanzó, se
+   * aprueba igual y CONTRATACIÓN la mide al abrir la cuenta (respaldo).
+   */
+  var FOTO = { k: '', p: null, v: null };
+  function fotoCalidad() {
+    var Q = K.piezas.calidad, V = K.piezas.variacion;
+    if (!Q || !V || !D) return Promise.resolve(null);
+    var k = D.cuenta.fila + '|' + D.cuenta.idContrato + '|' + D.cuenta.informe;
+    if (FOTO.k === k && FOTO.p) return FOTO.p;
+    var ant = Number(D.cuenta.informe) > 1 ? precargarAnterior() : Promise.resolve({ v: 2, obligaciones: [], cuentas: [] });
+    FOTO = { k: k, v: null, p: null };
+    FOTO.p = Promise.all([ant, V.ic()]).then(function (r) {
+      var f = Q.deCuenta(r[1], V, (D.obligaciones || []).map(function (o) { return { n: o.n, texto: o.texto, actual: o.actividad || '', soporte: soporteDe(o) }; }),
+        r[0], (D.contrato || {}).contrato || D.cuenta.contrato || '', periodoCuenta());
+      if (FOTO.k === k) FOTO.v = f;
+      return f;
+    })['catch'](function () { return null; });
+    return FOTO.p;
+  }
+  function fotoLista() {
+    if (!D) return null;
+    var k = D.cuenta.fila + '|' + D.cuenta.idContrato + '|' + D.cuenta.informe;
+    return FOTO.k === k && FOTO.v && FOTO.v.p !== null ? FOTO.v : null;
+  }
   function botonComparar(donde, o) {
     var V = K.piezas.variacion;
     if (!V || !D || !(Number(D.cuenta.informe) > 1)) return;
@@ -2601,6 +2628,7 @@
         (nObsDec === 1 ? '<b>1 observación' : '<b>' + nObsDec + ' observaciones') + ' para el contratista</b>: lo indicado es <b>devolver</b> la cuenta.</span></p>'));
     }
     resumenActividades(cuerpo);   /* 02/11 · los 6 bombillos por obligación */
+    fotoCalidad();   /* 10/11 · la foto del primer filtro, lista antes de confirmar */
     cuerpo.appendChild(op);
     var zona = K.nodo('<div class="rv-dec__zona"></div>');
     cuerpo.appendChild(zona);
@@ -2735,6 +2763,8 @@
       cuerpoD.motivo = motivo;
       cuerpoD.v27 = 1;   /* el CORE responde sin la lista y deja los avisos en cola */
       if (eleccion === 'APROBAR') {
+        var foto = fotoLista();   /* 10/11 · calidad del primer filtro (si no alcanzó, Contratación la mide) */
+        if (foto) cuerpoD.cal = foto;
         if (contra) cuerpoD.motivoContra = contra;
         var recT = taRec ? taRec.value.replace(/\r/g, '').trim() : '';
         if (recT) cuerpoD.recomendaciones = { texto: recT, enviar: !!(chkRec && chkRec.checked) };

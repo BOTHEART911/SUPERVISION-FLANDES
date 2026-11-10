@@ -527,7 +527,13 @@
                   contratistas: 'Contratistas', contratista: 'Ficha del contratista', informe: 'Informe de cuentas',
                   firmados: 'Informes firmados', reporte: 'Reporte de Supervisión', requerimientos: 'Requerimientos',
                   comunicados: 'Comunicados', directorio: 'Directorio institucional', drive: 'Drive de Hacienda', perfil: 'Mi firma y mi foto' };
+  /* 10/11 · CALIDAD DEL PRIMER FILTRO: la guía vive en js/calidad.js (mismo archivo en CONTRATACIÓN, ADMIN y SUPERVISIÓN) */
+  GUIAS.calidad = function () {
+    return window.CALIDAD && window.CALIDAD.ayuda ? window.CALIDAD.ayuda()
+      : { guia: 'Qué tan completas llegan a Contratación las cuentas que aprueba cada supervisor.', botones: [] };
+  };
   TITULOS.agenda = 'Agenda de revisión';
+  TITULOS.calidad = 'Mi calidad como primer filtro';
 
   function montar(vista, extra) {
     if (!K.piezas.insights) return;

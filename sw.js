@@ -62,6 +62,7 @@ var ARMAZON = [
   /* 10.5 · cuentas atrasadas */
   './js/atrasos.js',
   './js/agenda.js',
+  './js/calidad.js',
   './kit/informe-cuentas.js',
   './img/icono-32.png',
   './img/icono-180.png',
@@ -75,7 +76,7 @@ var ARMAZON = [
   './kit/version.js',
   './kit/banner.js', './kit/banner.css',
   './kit/sesion.js', './kit/sesion.css',
-  './kit/esqueletos.js', './kit/esqueletos.css', './kit/variacion.js', './kit/variacion.css', './kit/teayudo.js', './kit/teayudo.css', './kit/huella.js', './kit/huella.css',
+  './kit/esqueletos.js', './kit/esqueletos.css', './kit/variacion.js', './kit/variacion.css', './kit/teayudo.js', './kit/teayudo.css', './kit/huella.js', './kit/huella.css', './kit/calidad.js', './kit/calidad.css',
   './kit/guardado.js', './kit/guardado.css',
   './kit/conexion.js', './kit/conexion.css',
   './kit/instalar.js', './kit/instalar.css',
