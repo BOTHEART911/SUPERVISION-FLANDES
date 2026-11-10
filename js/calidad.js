@@ -38,7 +38,7 @@
     var mia = C.modo === 'mia';
     if (mia) return {
       guia: 'Tu **calidad como primer filtro**: qué tan completas llegan a Contratación las cuentas que apruebas, con los mismos **6 bombillos** que guían al contratista. ' +
-            'Combina la **redacción con que pasan** (80 %) y las que **Contratación devolvió después** (20 %). Abajo, **Para tu próxima revisión** dice qué conviene reforzar. **Informe** arma tu PDF. Solo tú ves este detalle en Supervisión.',
+            'Combina la **calidad con que pasan** (80 %) y las que **Contratación devolvió después** (20 %). Abajo, **Para tu próxima revisión** dice qué conviene reforzar. **Informe** arma tu PDF. Solo tú ves este detalle en Supervisión.',
       botones: [
         { texto: '¿Cómo subo mi porcentaje?', responde: function () {
             return 'Antes de **Aprobar**, mira los bombillos de cada actividad: si alguno está en rojo, tócalo y usa **Pasar a la observación para el contratista** y devuelve la cuenta. ' +
@@ -50,12 +50,13 @@
     var Q = function () { try { return K.recordado.leer('calidad.ranking'); } catch (e) { return null; } };
     return {
       guia: 'Una tarjeta por **supervisor**, de mayor a menor **calidad del primer filtro**: qué tan completas llegan a Contratación las cuentas que aprueba, con los mismos **6 bombillos** que guían al contratista. ' +
-            'El porcentaje combina la **redacción con que pasan** (80 %) y las que **Contratación devolvió después** (20 %). Sus propias devoluciones se muestran pero no suben el puntaje. ' +
+            'El porcentaje combina la **calidad con que pasan** (80 %) y las que **Contratación devolvió después** (20 %). Sus propias devoluciones se muestran pero no suben el puntaje. ' +
             'Con menos de 5 cuentas aparece al final, sin puesto. **Informe** arma el PDF gerencial del supervisor con hallazgos, lo que se le escapa, lo que devuelve y **compromisos sugeridos**. Es una herramienta de mejora, no una sanción.',
       botones: [
         { texto: '¿Cómo se calcula el porcentaje?', responde: function () {
-            return 'Cada obligación vale el promedio de sus bombillos (verde 100, ámbar 50, rojo 0; el gris no cuenta). La cuenta vale el promedio de sus obligaciones de gestión (las generales y las «no requeridas» no entran; una vacía vale 0). ' +
-                   'El supervisor: **80 %** el promedio de las cuentas que aprobó + **20 %** (100 − % de esas cuentas que Contratación devolvió después). Lo de antes del 10/11 se midió con el texto de hoy y sale marcado como aproximado.';
+            return 'Cada cuenta usa los **mismos componentes del informe gerencial del contratista**, menos la oportunidad de radicación (no depende del supervisor), en tres partes iguales: **Variación** (qué hizo distinto), **Redacción completa** (cuántos, para quién, resultado y cuándo) y **Soporte**. Verde vale 100, ámbar 50, rojo 0; el gris no cuenta. Las obligaciones generales y las «no requeridas» no entran; una vacía suma 0. ' +
+                   'El supervisor: **80 %** el promedio de las cuentas que aprobó + **20 %** (100 − % de esas cuentas que Contratación devolvió después). Lo de antes del 10/11 se midió con el texto de hoy y sale marcado como aproximado. ' +
+                   'En el informe, «Calidad con que aprobó las cuentas de cada contratista» no es un ranking de contratistas: es cómo pasó el supervisor las cuentas de cada uno en el periodo.';
           } },
         { texto: '¿Qué bombillo se deja pasar más?', responde: function () {
             var d = Q(); if (!d || !d.supervisores) return 'Todavía está cargando.';
