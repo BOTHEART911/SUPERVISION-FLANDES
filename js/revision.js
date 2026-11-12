@@ -1319,7 +1319,8 @@
   function soporteDe(o) { return (o.evidencias || []).length + adjuntosDe(o).length; }
   /* 12/11 · las demás obligaciones de la cuenta (misma actividad en dos obligaciones) */
   function hermanasDe(n) { return ((D && D.obligaciones) || []).filter(function (x) { return Number(x.n) !== Number(n); }).map(function (x) { return { n: x.n, texto: x.actividad || '', obl: x.texto }; }); }
-  function periodoCuenta() { var k = (D && D.cuenta && D.cuenta.campos) || {}; return { desde: k.inicioPeriodo || '', hasta: k.finPeriodo || '' }; }
+  /* 12/11 (tarde) · con informe y total: la entrega documental al cierre solo se mide en la última cuenta */
+  function periodoCuenta() { var k = (D && D.cuenta && D.cuenta.campos) || {}; return { desde: k.inicioPeriodo || '', hasta: k.finPeriodo || '', informe: (D && D.cuenta && D.cuenta.informe) || '', total: (D && D.cuenta && D.cuenta.total) || '' }; }
   /**
    * 03/11 · LOS 6 BOMBILLOS EN CADA OBLIGACIÓN (a la vista, en lenguaje técnico).
    * Se miden en el teléfono con el mismo motor del informe gerencial cuando llegan
@@ -1337,11 +1338,11 @@
       try {
         var d = r[0] || {}, I = r[1], per = periodoCuenta(), nC = (D.contrato || {}).contrato || D.cuenta.contrato || '';
         var prev = V.previosDe(d, o.n);
-        var R = V.medir(I, o.actividad, V.preparar(I, o.texto, prev, nC), { obl: o.texto, desde: per.desde, hasta: per.hasta, soporte: soporteDe(o), nContrato: nC, n: o.n, hermanas: hermanasDe(o.n) });
+        var R = V.medir(I, o.actividad, V.preparar(I, o.texto, prev, nC), { obl: o.texto, desde: per.desde, hasta: per.hasta, soporte: soporteDe(o), nContrato: nC, n: o.n, hermanas: hermanasDe(o.n), informe: per.informe, total: per.total });
         R.notaSoporte = textoRep(repetidasObl(d, o), o);   /* 02/11 · "1 imagen repetida de la cuenta 3" */
         caja.innerHTML = '';
         if (R.estado === 'general' || R.estado === 'noreq') {
-          caja.appendChild(K.nodo('<p class="rv-bom__t">' + K.icono('grafica', 15) + ' Calidad de la actividad <small>· ' + (R.estado === 'general' ? 'obligación general: no se mide' : 'no requerida en el periodo') + '</small></p>'));
+          caja.appendChild(K.nodo('<p class="rv-bom__t">' + K.icono('grafica', 15) + ' Calidad de la actividad <small>· ' + (R.cierre ? 'entrega al cierre del contrato: se mide en la última cuenta' : R.estado === 'general' ? 'obligación general: no se mide' : 'no requerida en el periodo') + '</small></p>'));
           return;
         }
         var v = V.verdes(R);
