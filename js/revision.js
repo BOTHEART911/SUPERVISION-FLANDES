@@ -2051,9 +2051,25 @@
       .map(function (x) { return x.n; });
   }
 
-  /** El motivo armado: una línea por observación ("• Obligación 3: …", "• Planilla: …"). */
+  /** 12/11 · El motivo armado AGRUPADO: «*Obligación 3:*» una sola vez y una viñeta por falta (KIT teayudo.armarMotivo). */
   function textoObservaciones() {
-    return observaciones().map(function (n) {
+    var TA = K.piezas.teayudo, obs = observaciones();
+    if (TA && TA.armarMotivo) {
+      var grupos = [], porClave = {}, act = {};
+      ((D && D.obligaciones) || []).forEach(function (o) { act[String(o.n)] = o.actividad || ''; });
+      obs.forEach(function (n) {
+        var gen = n.ambito === 'general', clave = gen ? 'general' : n.ambito + '|' + n.ref;
+        var g = porClave[clave];
+        if (!g) {
+          g = porClave[clave] = { titulo: gen ? '' : String(n.refTitulo || '').trim(), notas: [],
+            actividad: n.ambito === 'obligacion' ? (act[String(n.ref)] || '') : '' };
+          grupos.push(g);
+        }
+        g.notas.push(n.texto);
+      });
+      return TA.armarMotivo(grupos);
+    }
+    return obs.map(function (n) {
       var t = String(n.texto || '').replace(/\r/g, '').trim().replace(/\n+/g, '\n  ');
       var et = n.ambito === 'general' ? '' : String(n.refTitulo || '').trim();
       return '• ' + (et ? et + ': ' : '') + t;
@@ -2070,7 +2086,8 @@
       return caja;
     }
     var pre = K.nodo('<pre class="rv-lellega__txt"></pre>');
-    pre.textContent = textoObservaciones();
+    /* 12/11 · se ve como le llega: *negrita* de WhatsApp en negrita */
+    pre.innerHTML = K.esc(textoObservaciones()).replace(/\*([^*\n]{1,200})\*/g, '<b>$1</b>');
     caja.appendChild(pre);
     caja.appendChild(K.nodo('<p class="formulario__nota">Al tomar la decisión sale ya escrito y lo puedes editar. Las notas internas nunca se envían.</p>'));
     return caja;
