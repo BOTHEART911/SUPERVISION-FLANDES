@@ -2294,6 +2294,8 @@
 .rv-dec__et { margin: 0; font: 700 .74rem/1.3 var(--k-fuente); color: var(--k-apagado); text-transform: uppercase; letter-spacing: .3px; }
 .rv-dec__et b { color: var(--k-malo); }
 .rv-dec__cont { margin: -4px 0 0; text-align: right; font: 400 .72rem/1 var(--k-fuente); color: var(--k-apagado); }
+/* 12/11 · observación larga: avisa que al WhatsApp va recortada */
+.rv-dec__cont--corte { line-height: 1.35; color: var(--k-aviso); font-weight: 600; }
 .rv-dec__prev pre {
   margin: 6px 0 0; padding: 12px; border-radius: var(--k-r-md); background: var(--k-papel-2); border: 1px dashed var(--k-linea);
   white-space: pre-wrap; font: 400 .8rem/1.45 var(--k-fuente); color: var(--k-tinta-2); max-height: 200px; overflow-y: auto;
