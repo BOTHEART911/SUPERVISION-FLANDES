@@ -2076,6 +2076,9 @@
     }).join('\n');
   }
 
+  /** 12/11 · como se ve en WhatsApp: lo que va entre *asteriscos* sale en negrita. */
+  function comoWa(t) { return K.esc(String(t || '')).replace(/\*([^*\n]{1,200})\*/g, '<b>$1</b>'); }
+
   /** En la Bitácora: lo que le llegaría al contratista si hoy se devuelve. */
   function cajaLeLlega() {
     var obs = observaciones();
@@ -2087,7 +2090,7 @@
     }
     var pre = K.nodo('<pre class="rv-lellega__txt"></pre>');
     /* 12/11 · se ve como le llega: *negrita* de WhatsApp en negrita */
-    pre.innerHTML = K.esc(textoObservaciones()).replace(/\*([^*\n]{1,200})\*/g, '<b>$1</b>');
+    pre.innerHTML = comoWa(textoObservaciones());
     caja.appendChild(pre);
     caja.appendChild(K.nodo('<p class="formulario__nota">Al tomar la decisión sale ya escrito y lo puedes editar. Las notas internas nunca se envían.</p>'));
     return caja;
@@ -2750,13 +2753,13 @@
         zona.appendChild(prev);
         var pintarPrev = function () {
           contarMotivo(cont, ta.value.length);
-          prev.querySelector('pre').textContent = inc
+          prev.querySelector('pre').innerHTML = comoWa(inc
             ? 'Hola ' + cu.nombre + '. En tu cuenta del informe ' + cu.informe + ' (contrato ' + cu.contrato + ') no se encuentran estos soportes:\n\n' +
               textoWa(ta.value) + '\n\nEntra a CORREGIR CUENTA, adjunta solo lo que falta y vuelve a reportarla desde ESTADO DE CUENTA.\n\n' +
               cu.supervisor + '\nSupervisor(a) del contrato'
             : 'Hola ' + cu.nombre + '. Tu cuenta del informe ' + cu.informe + ' (contrato ' + cu.contrato +
             ') fue DEVUELTA.\n\nMotivo:\n' + textoWa(ta.value) + '\n\nCorrígela en CORREGIR CUENTA y, cuando la guardes, repórtala otra vez desde ESTADO DE CUENTA.\n\n' +
-            cu.supervisor + '\nSupervisor(a) del contrato';
+            cu.supervisor + '\nSupervisor(a) del contrato');
         };
         ta.addEventListener('input', pintarPrev);
         pintarPrev();
