@@ -1303,7 +1303,7 @@
       Promise.all([p, V.ic()]).then(function (r) {
         cargado = true;
         zona.innerHTML = '';
-        zona.appendChild(V.panelComparar(r[1], { n: o.n, texto: o.texto, actual: o.actividad || '', soporte: soporteDe(o) }, r[0], (D.contrato || {}).contrato || D.cuenta.contrato || '', D.cuenta.informe, periodoCuenta()));
+        zona.appendChild(V.panelComparar(r[1], { n: o.n, texto: o.texto, actual: o.actividad || '', soporte: soporteDe(o) }, r[0], (D.contrato || {}).contrato || D.cuenta.contrato || '', D.cuenta.informe, Object.assign(periodoCuenta(), { hermanas: hermanasDe(o.n) })));
       })['catch'](function (e) {
         V.olvidar(claveAnt());
         zona.innerHTML = '';
@@ -1317,6 +1317,8 @@
 
   /* 02/11 · lo que el motor necesita de esta cuenta: soportes por obligación y su periodo */
   function soporteDe(o) { return (o.evidencias || []).length + adjuntosDe(o).length; }
+  /* 12/11 · las demás obligaciones de la cuenta (misma actividad en dos obligaciones) */
+  function hermanasDe(n) { return ((D && D.obligaciones) || []).filter(function (x) { return Number(x.n) !== Number(n); }).map(function (x) { return { n: x.n, texto: x.actividad || '', obl: x.texto }; }); }
   function periodoCuenta() { var k = (D && D.cuenta && D.cuenta.campos) || {}; return { desde: k.inicioPeriodo || '', hasta: k.finPeriodo || '' }; }
   /**
    * 03/11 · LOS 6 BOMBILLOS EN CADA OBLIGACIÓN (a la vista, en lenguaje técnico).
@@ -1335,7 +1337,7 @@
       try {
         var d = r[0] || {}, I = r[1], per = periodoCuenta(), nC = (D.contrato || {}).contrato || D.cuenta.contrato || '';
         var prev = V.previosDe(d, o.n);
-        var R = V.medir(I, o.actividad, V.preparar(I, o.texto, prev, nC), { obl: o.texto, desde: per.desde, hasta: per.hasta, soporte: soporteDe(o), nContrato: nC });
+        var R = V.medir(I, o.actividad, V.preparar(I, o.texto, prev, nC), { obl: o.texto, desde: per.desde, hasta: per.hasta, soporte: soporteDe(o), nContrato: nC, n: o.n, hermanas: hermanasDe(o.n) });
         R.notaSoporte = textoRep(repetidasObl(d, o), o);   /* 02/11 · "1 imagen repetida de la cuenta 3" */
         caja.innerHTML = '';
         if (R.estado === 'general' || R.estado === 'noreq') {
