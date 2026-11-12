@@ -74,9 +74,9 @@
   function cargar(forzar) {
     if (TODAS && !forzar) return Promise.resolve(TODAS);
     if (forzar) {
-      return K.pedir('contratistas').then(function (d) { recibir(d); return TODAS; });
+      return K.pedir('contratistas', { fmt: 2 }).then(function (d) { recibir(d); return TODAS; });
     }
-    return Promise.resolve(C.recargarTodo ? C.recargarTodo() : K.pedir('contratistas').then(recibir))
+    return Promise.resolve(C.recargarTodo ? C.recargarTodo() : K.pedir('contratistas', { fmt: 2 }).then(recibir))
       .then(function () { return TODAS || []; });
   }
 
