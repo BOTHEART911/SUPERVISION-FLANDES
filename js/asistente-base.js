@@ -833,7 +833,7 @@ window.ASISTENTE_BASE = [
 "publicacion en redes",
 "prensa"
 ],
-"respuesta": "En **SOLICITUD A COMUNICACIONES** pides fotos, video, piezas gráficas o publicaciones para tu secretaría. Desde Supervisión **no hay antelación mínima**. Abajo ves en qué va cada solicitud.",
+"respuesta": "En **SOLICITUD A COMUNICACIONES** pides fotos, video, piezas gráficas o publicaciones para tu secretaría. La entrega o publicación va **desde hoy + 7 días**; si el día que eliges ya tiene muchas solicitudes, la app te pide elegir otro (puedes dejarlo igual). Abajo ves en qué va cada solicitud.",
 "accion": "ir:comunicaciones",
 "estado": "",
 "activo": true,

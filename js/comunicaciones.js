@@ -6,9 +6,10 @@
 
    Es el formulario de CONTRATISTA-FLANDES (4.8) con las reglas de
    Supervisión (dictadas por Oss el 23/09/2026):
-     · SIN restricción de antelación: la entrega o publicación puede ser
-       hoy mismo (en Contratista son 3 días). Lo único que no se deja es
-       una fecha que ya pasó, porque no significa nada.
+     · 17/11/2026: la entrega o publicación va desde hoy + 7 días
+       calendario, igual que en Contratista (antes: sin antelación). Si el
+       día elegido ya tiene 5 o más solicitudes PENDIENTE o EN PROCESO,
+       se avisa (no se bloquea).
      · El calendario institucional NO va (se suprimió en todas las apps).
      · Quien pide es el supervisor (o el revisor), no un contrato: la
        secretaría se elige entre las de SU supervisión, la más usada
@@ -25,6 +26,19 @@
   var FILTRO = '';
 
   function app() { return C.app || K.id('app'); }
+
+  /* 17/11 · desde hoy + 7 días calendario. El CORE nuevo ya lo manda así; con el anterior
+     (sin antelación) aquí se sube a 7 igual, para que la regla rija desde ya. */
+  var ANTELACION_MIN = 7;
+  function antelacion7(r) {
+    if (!r) return r;
+    var m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(r.hoy || '')), h = m ? new Date(+m[3], +m[2] - 1, +m[1]) : new Date();
+    h.setDate(h.getDate() + ANTELACION_MIN);
+    var d7 = String(h.getDate()).padStart(2, '0') + '/' + String(h.getMonth() + 1).padStart(2, '0') + '/' + h.getFullYear();
+    if (!r.minPublicacion || iso(d7) > iso(r.minPublicacion)) r.minPublicacion = d7;
+    if (!(Number(r.antelacion) >= ANTELACION_MIN)) r.antelacion = ANTELACION_MIN;
+    return r;
+  }
 
   function iso(dmy) {
     var m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(dmy || ''));
@@ -76,7 +90,7 @@
   function vista(sub) {
     var c = K.nodo('<div class="kit-ancho vista tr"></div>');
     app().appendChild(c);
-    var p = K.pedir('comunicacionesEstado', {}, { ms: 60000 }).then(function (r) { P = r; return r; });
+    var p = K.pedir('comunicacionesEstado', {}, { ms: 60000 }).then(function (r) { P = antelacion7(r); return r; });
     K.piezas.esqueletos.mientras(c, p, { forma: 'ficha', cuantos: 2, espera: 'Trayendo tus solicitudes a Comunicaciones' })
       .then(function () { pintar(c, sub === 'nueva'); })
       ['catch'](function (e) {
@@ -141,10 +155,10 @@
     });
     f.appendChild(cDet);
 
-    /* sin antelación: la rueda arranca HOY (P.minPublicacion es hoy) */
+    /* 17/11 · la rueda arranca en hoy + 7 (P.minPublicacion) */
     var pub = K.nodo('<input type="date" data-kit-fecha data-titulo="Entrega o publicación" min="' + iso(P.minPublicacion) + '" placeholder="dd/mm/aaaa">');
     pub.addEventListener('change', function () { D.publicacion = K.fecha(pub.value); });
-    f.appendChild(campo('Fecha de entrega o publicación', 'Puede ser <b>hoy</b> (' + K.esc(P.hoy) + ') o cualquier día después.', pub, true));
+    f.appendChild(campo('Fecha de entrega o publicación', 'Desde el <b>' + K.esc(P.minPublicacion) + '</b>: ' + P.antelacion + ' días de antelación.', pub, true));
 
     f.appendChild(K.nodo('<h3 class="grupo__t grupo__t--sub">Si es un evento</h3>'));
     var ev = K.nodo('<input type="text" maxlength="300" placeholder="Ej: Entrega de kits escolares en la sede El Colegio">');
@@ -225,7 +239,11 @@
       }).then(function (ok) { if (ok) enviar(c, D); });
     });
 
-    if (K.piezas.fechas) setTimeout(function () { K.piezas.fechas.montar(f); }, 0);
+    if (K.piezas.fechas) setTimeout(function () {
+      K.piezas.fechas.montar(f);
+      /* 17/11 · día con 5 o más solicitudes PENDIENTE o EN PROCESO: aviso (no bloquea) */
+      if (K.piezas.fechas.vigilarVolumen) K.piezas.fechas.vigilarVolumen(pub, { llenas: function () { return (P && P.ocupadas) || {}; }, tope: (P && P.tope) || 5 });
+    }, 0);
     return f;
   }
 
@@ -234,7 +252,7 @@
     if (!D.requerimientos.length) return 'Elige al menos una cosa que necesitas.';
     if (String(D.detalles || '').trim().length < 15) return 'Cuenta con más detalle lo que necesitas.';
     if (!D.publicacion) return 'Elige la fecha de entrega o publicación.';
-    if (iso(D.publicacion) < iso(P.hoy)) return 'La fecha de entrega o publicación ya pasó.';
+    if (iso(D.publicacion) < iso(P.minPublicacion)) return 'La entrega o publicación va desde el ' + P.minPublicacion + ' (' + P.antelacion + ' días de antelación).';
     if (D.horaInicio && D.horaFin && D.horaFin <= D.horaInicio) return 'La hora de terminación tiene que ser después de la de inicio.';
     if (!String(D.secretaria || '').trim()) return 'Elige la secretaría que hace la solicitud.';
     if (!String(D.cargo || '').trim()) return 'Escribe tu cargo.';

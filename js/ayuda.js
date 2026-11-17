@@ -195,7 +195,7 @@
 
     comunicaciones: function () {
       return {
-        guia: 'Pide apoyo al equipo de Comunicaciones para tu secretaría. Desde Supervisión **no hay antelación mínima**: la entrega o publicación puede ser hoy mismo. ' +
+        guia: 'Pide apoyo al equipo de Comunicaciones para tu secretaría. La entrega o publicación va **desde hoy + 7 días calendario**. Si el día que eliges ya tiene 5 o más solicitudes en curso, te pedimos elegir una fecha posterior: con **Sí** se vuelve a abrir el calendario con ese día en rojo; con **No** se queda la que elegiste. ' +
               'Abajo ves tus solicitudes y en qué van (recibida, en proceso, realizada).',
         botones: [
           { texto: '¿En qué van mis solicitudes?', responde: function () {
