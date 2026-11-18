@@ -2911,3 +2911,116 @@
 /* 10/11 · actividad redactada con «Redactemos una actividad juntos» (marca discreta para el revisor) */
 .rv-asis { display: inline-flex; align-items: center; gap: 6px; margin: 0 0 6px; padding: 3px 10px 3px 7px; border-radius: 999px; background: var(--k-papel-2); border: 1px solid var(--k-linea); color: var(--k-tinta-2); font-size: .74rem; font-weight: 600; width: fit-content; }
 .rv-asis svg { color: var(--k-marca); flex: 0 0 auto; }
+
+
+/* ════════════════════════════════════════════════════════════
+   18/11/2026 · SIN FRANJAS LATERALES (DESIGN.md del kit, punto 8)
+   El estado se sigue diciendo con el borde completo tenue. Generado a
+   partir de las reglas de arriba; las de arriba quedan como estaban.
+   ════════════════════════════════════════════════════════════ */
+.grupo__t { padding-left: 0; }
+.tr-sol { padding-left: 14px; }
+.acceso::before { content: none; }
+.grupo__t::before { content: none; }
+.obl { border-left-width: 1px; border-color: var(--k-linea); }
+.obl--lista { border-color: color-mix(in srgb, var(--k-ok) 40%, transparent); }
+.obl--escrita { border-color: color-mix(in srgb, var(--k-aviso) 40%, transparent); }
+.obl--pendiente { border-color: color-mix(in srgb, var(--k-linea) 40%, transparent); }
+.cta-devuelta { border-left: 0; border: 1px solid color-mix(in srgb, var(--k-aviso) 40%, transparent); }
+.cta-doc--obliga { border-left: 0; border: 1px solid color-mix(in srgb, var(--k-marca) 40%, transparent); }
+.seg-estado::before { content: none; }
+.seg-estado--ok { border-color: color-mix(in srgb, var(--k-ok) 40%, transparent); }
+.seg-estado--malo { border-color: color-mix(in srgb, var(--k-malo) 40%, transparent); }
+.seg-estado--nada { border-color: color-mix(in srgb, var(--k-linea) 40%, transparent); }
+.tr-sol::before { content: none; }
+.tr-sol--ok { border-color: color-mix(in srgb, var(--k-ok) 40%, transparent); }
+.tr-sol--info { border-color: color-mix(in srgb, var(--k-marca-clara) 40%, transparent); }
+.tr-sol--malo { border-color: color-mix(in srgb, var(--k-malo) 40%, transparent); }
+.rv-nota { border-left: 0; border: 1px solid color-mix(in srgb, var(--k-aviso) 40%, transparent); }
+.rp-fila { border-left-width: 1px; border-color: color-mix(in srgb, var(--k-ok) 40%, transparent); }
+.rp-fila--dev { border-color: color-mix(in srgb, var(--k-malo) 40%, transparent); }
+.at-tar { border-left: 0; border: 1px solid color-mix(in srgb, var(--k-aviso) 40%, transparent); }
+.at-tar--malo { border-color: color-mix(in srgb, var(--k-malo) 40%, transparent); }
+.at-tar--info { border-color: color-mix(in srgb, var(--k-marca-clara) 40%, transparent); }
+.at-ini { border-left: 0; border: 1px solid color-mix(in srgb, var(--k-ok) 40%, transparent); }
+.at-ini--hay { border-color: color-mix(in srgb, var(--k-malo) 40%, transparent); }
+.rv-nota--obs { border-color: color-mix(in srgb, var(--k-marca) 40%, transparent); }
+.ag-mini { border-left: 0; border: 1px solid color-mix(in srgb, var(--k-marca) 40%, transparent); }
+.ag-mini--llego { border-color: color-mix(in srgb, var(--k-ok) 40%, transparent); }
+.ag-tar--llego { border-left: 0; border: 1px solid color-mix(in srgb, var(--k-ok) 40%, transparent); }
+.ag-mini--tarde { border-color: color-mix(in srgb, var(--k-malo) 40%, transparent); }
+.ag-tar--tarde { border-left: 0; border: 1px solid color-mix(in srgb, var(--k-malo) 40%, transparent); }
+.ag-g--tarde { border-left: 0; border: 1px solid color-mix(in srgb, var(--k-malo) 40%, transparent); }
+
+/* ════════════════════════════════════════════════════════════
+   18/11/2026 · NUEVO INICIO, IGUAL QUE CONTRATISTA (DESIGN.md del kit)
+   La tarea principal del rol arriba, grande y con su conteo; lo demás
+   en listas cortas por sección; saludo limpio, sin franja de cielo.
+   Solo cambia cómo se ve: permisos, conteos y viajes son los de antes.
+   ════════════════════════════════════════════════════════════ */
+.ini2 { --ini-hero: var(--k-marca); }
+:root[data-tema="oscuro"] .ini2 { --ini-hero: #134a35; }
+
+.ini2 .saludo {
+  margin: 0; padding: 6px 2px 0; min-height: 0;
+  background: none; color: var(--k-tinta); border-radius: 0; box-shadow: none; overflow: visible;
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+}
+.ini2 .saludo::before, .ini2 .saludo::after { content: none; }
+.ini2 .saludo__hola { margin: 0; color: var(--k-apagado); font-size: .95rem; }
+.ini2 .saludo__nombre { margin: 2px 0 4px; color: var(--k-tinta); font: 600 1.6rem/1.2 var(--k-fuente-titulo); letter-spacing: 0; }
+.ini2 .saludo__doc { margin: 0; color: var(--k-apagado); font-size: .86rem; }
+
+/* ── la tarea principal ── */
+.ini2-hero .acceso--principal {
+  position: relative; width: 100%;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+  background: var(--ini-hero); color: #fff; border: 0; border-radius: 22px;
+  padding: 20px 20px 22px; min-height: 150px; box-shadow: none;
+}
+.ini2-hero .acceso--principal:hover { transform: none; box-shadow: none; background: var(--ini-hero); }
+.ini2-hero .acceso--principal::after { border-color: #fff; right: 22px; bottom: 26px; top: auto; }
+.ini2-hero .acceso__img { width: 48px; height: 48px; border-radius: 14px; background: rgba(255, 255, 255, .12); color: #fff; padding: 0; }
+.ini2-hero .acceso__img svg { width: 26px; height: 26px; }
+.ini2-hero .acceso__txt { padding-right: 34px; }
+.ini2-hero .acceso__t { color: #fff; font: 600 1.35rem/1.25 var(--k-fuente-titulo); }
+.ini2-hero .acceso__p { color: #dcebe3; font-size: .92rem; margin-top: 4px; }
+.ini2-hero .acceso__burbuja {
+  position: absolute; top: 18px; right: 18px; left: auto;
+  min-width: 0; height: auto; padding: 6px 12px; border-radius: 999px;
+  background: #fde68a; color: #06402B; box-shadow: none; font-size: 0;
+}
+.ini2-hero .acceso__burbuja::after { content: attr(aria-label); font: 600 .8rem/1 var(--k-fuente); }
+
+/* ── secciones en listas cortas ── */
+.ini2 .bloque { gap: 8px; }
+.ini2 .bloque__t { margin: 6px 4px 0; text-transform: none; letter-spacing: 0; font: 600 .92rem/1.2 var(--k-fuente-titulo); color: var(--k-tinta-2); }
+.ini2 .bloque__t::after { content: none; }
+.ini2 .bloque .accesos {
+  display: flex; flex-direction: column; gap: 0;
+  background: var(--k-papel); border: 1px solid var(--k-linea); border-radius: 18px; overflow: hidden;
+}
+.ini2 .bloque .acceso {
+  border: 0; border-top: 1px solid var(--k-linea); border-radius: 0; box-shadow: none;
+  background: transparent; padding: 12px 16px; min-height: 60px; gap: 12px;
+}
+.ini2 .bloque .acceso:first-child { border-top: 0; }
+.ini2 .bloque .acceso[hidden] { display: none; }
+.ini2 .bloque .acceso:hover { transform: none; box-shadow: none; background: rgba(var(--k-marca-rgb), .04); }
+.ini2 .bloque .acceso__img { width: 38px; height: 38px; padding: 0; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; color: var(--k-marca); background: rgba(var(--k-marca-rgb), .09); }
+.ini2 .bloque .acceso__img svg { width: 20px; height: 20px; }
+.ini2 .bloque .acceso__txt { flex: 1 1 auto; padding-right: 22px; }
+.ini2 .bloque .acceso__t { font: 600 .95rem/1.3 var(--k-fuente); }
+.ini2 .bloque .acceso__p { font-size: .82rem; }
+.ini2 .bloque .acceso__burbuja { position: static; flex: 0 0 auto; margin-right: 22px; box-shadow: none; }
+.ini2 .acceso:focus-visible { outline: 2px solid var(--k-marca); outline-offset: -2px; }
+.ini2-hero .acceso:focus-visible { outline-color: #fde68a; outline-offset: 2px; }
+
+@media (min-width: 900px) {
+  .ini2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 22px; align-items: start; }
+  .ini2 > * { grid-column: auto; width: auto; margin-inline: 0; }
+  .ini2 > .saludo, .ini2 > .ini2-hero, .ini2 > .kit-cred, .ini2 > .rv-aviso, .ini2 > .kit-tarjeta { grid-column: 1 / -1; }
+  .ini2 .saludo__nombre { font-size: 1.9rem; }
+  .ini2-hero .acceso--principal { padding: 26px 30px 28px; min-height: 170px; }
+  .ini2-hero .acceso__t { font-size: 1.6rem; }
+}
