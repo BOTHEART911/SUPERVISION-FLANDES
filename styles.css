@@ -3024,3 +3024,10 @@
   .ini2-hero .acceso--principal { padding: 26px 30px 28px; min-height: 170px; }
   .ini2-hero .acceso__t { font-size: 1.6rem; }
 }
+
+/* 18/11 · la tarjeta principal lleva el cielo de la portada: el verde va en
+   la sección (que recorta los globos) y el botón queda transparente encima */
+.ini2-hero { background: var(--ini-hero); border-radius: 22px; overflow: hidden; }
+.ini2-hero .acceso--principal, .ini2-hero .acceso--principal:hover { background: transparent; }
+.ini2-hero .acceso--principal { z-index: 1; }
+.ini2-hero .acceso__burbuja { position: absolute; z-index: 2; }

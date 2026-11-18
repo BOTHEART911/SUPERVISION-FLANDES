@@ -467,6 +467,8 @@
     var ref = saludo ? saludo.nextSibling : caja.firstChild;
     while (ref && ref.nodeType === 1 && ref.classList.contains('rv-aviso')) ref = ref.nextSibling;
     caja.insertBefore(s, ref || null);
+    /* 18/11 · el cielo de la portada (aurora y globos) en la tarjeta principal */
+    if (K.piezas.cielo) K.piezas.cielo.poner(s, { burbujas: 4 });
     if (bloqueViejo && !bloqueViejo.querySelector('.acceso')) bloqueViejo.hidden = true;
   }
 
