@@ -95,7 +95,7 @@ var ARMAZON = [
   /* 5.1.1 · soporte */
   './kit/adjuntos.js', './kit/adjuntos.css',
   './kit/imagenes.js',
-  './kit/soporte.js', './kit/soporte.css',
+  './kit/soporte.js', './kit/soporte.css', './kit/voz.js',
   './kit/fechas.js', './kit/fechas.css',
   /* 5.3 · revisión de cuentas */
   './kit/carrusel.js', './kit/carrusel.css',
