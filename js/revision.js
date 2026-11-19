@@ -299,6 +299,7 @@
     function pintar() {
       repintarPastillas();
       var filas = cuentas().filter(function (c) { return pasa(c); });
+      if (K.piezas.prioridad) filas = K.piezas.prioridad.primero(filas);   /* 19/11 · cuenta prioritaria primero (kit/pastillas.js) */
       conteo.innerHTML = '<b>' + K.numero(filas.length) + '</b> ' + (filas.length === 1 ? 'cuenta' : 'cuentas') +
         (filas.length !== cuentas().length ? ' <span>de ' + cuentas().length + '</span>' : '') +
         (HORA ? '<span class="ct-sello">' + K.icono('reloj', 13) + ' Al día a las ' + K.esc(horaCorta(HORA)) + '</span>' : '');
