@@ -355,7 +355,7 @@
       '  <div><dt>Secretaría</dt><dd>' + K.esc(titulo(c.sec) || '—') + '</dd></div>' +
       '  <div><dt>Cobra</dt><dd>' + K.esc(c.cobro ? K.pesos(c.cobro) : '—') + '</dd></div>' +
       '  <div><dt>Radicada</dt><dd' + (dias !== null && dias >= 5 ? ' class="rv-t__tarde"' : '') + '>' + K.esc(c.radicada || '—') +
-      (dias !== null ? ' <small>· hace ' + dias + (dias === 1 ? ' día' : ' días') + '</small>' : '') + '</dd></div>' +
+      (K.piezas.prioridad && K.piezas.prioridad.hace ? K.piezas.prioridad.hace(c, c.radicada) : (dias !== null ? ' <small>· hace ' + dias + (dias === 1 ? ' día' : ' días') + '</small>' : '')) + '</dd></div>' +
       (c.revisada && c.estado !== 'REPORTADA' ? '  <div><dt>Revisada</dt><dd>el ' + K.esc(c.revisada) + '</dd></div>' : '') +
       '</dl>'));
     if (c.sup && K.piezas.personas) {
