@@ -2618,7 +2618,7 @@
   /* 12/11 · DEVOLVER SIN LÍMITE DE CARACTERES. La observación se guarda completa y el
      contratista la lee completa en su app. Al WhatsApp va lo mismo que antes: hasta 3.000;
      si se pasa, se corta ahí (sin partir palabras) y se agrega el aviso. Igual que el CORE (FC1112). */
-  var TOPE_WA = 3000, TOPE_CELDA = 40000, SUFIJO_WA = '*{Continua los detalles de observación en la App}*';
+  var TOPE_WA = 3000, TOPE_CELDA = 40000, SUFIJO_WA = '*🔎 Continúa los detalles de observación en la App 🔍*';
   function corteWa(texto) {
     var t = String(texto == null ? '' : texto);
     if (t.length <= TOPE_WA) return { texto: t, cortado: false };
