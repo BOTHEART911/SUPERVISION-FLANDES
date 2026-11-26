@@ -91,6 +91,7 @@ var ARMAZON = [
   './kit/insights.js', './kit/insights.css',
   './kit/pastillas.js',
   './kit/personas.js', './kit/personas.css',
+  './kit/formato.js', './kit/formato.css',
   './kit/perfil.js',
   /* 5.1.1 · soporte */
   './kit/adjuntos.js', './kit/adjuntos.css',
