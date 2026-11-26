@@ -1202,16 +1202,23 @@
 
   function secPlanilla(z) {
     var k = D.cuenta.campos || {}, p = D.datos || {};
+    /* 26/11 · planilla de empleados de una persona jurídica (tipo E): sin base de cotización propia */
+    var emp = /^SI$/i.test(String(k.planEmp || '')), empA = /^SI$/i.test(String(k.planEmpA || ''));
+    var SIN_IBC = 'No aplica · planilla de empleados';
     var rej = K.nodo('<div class="ct-ficha__rej"></div>');
-    rej.appendChild(grupo('Planilla', [
-      dato('N° de planilla', k.planilla), dato('Mes', k.mesPlanilla), dato('Base de cotización', pesosTxt(k.base)),
+    rej.appendChild(grupo(emp ? 'Planilla de empleados de la empresa' : 'Planilla', [
+      dato('N° de planilla', k.planilla), dato('Mes', k.mesPlanilla),
+      emp ? dato('Fecha de pago', k.fechaPago) : null,
+      dato('Base de cotización', emp ? SIN_IBC : pesosTxt(k.base)),
       dato('Salud', pesosTxt(k.salud)), dato('Pensión', pesosTxt(k.pension)), dato('Riesgos (ARL)', pesosTxt(k.riesgos)),
       dato('Caja de compensación', pesosTxt(k.caja)), dato('SENA', pesosTxt(k.sena)), dato('ICBF', pesosTxt(k.icbf)),
       dato('Fondo de solidaridad', [k.solidario, pesosTxt(k.aporte)].filter(Boolean).join(' · '))
     ]));
     if (k.planillaA) {
-      rej.appendChild(grupo('Planilla anexa', [
-        dato('N° de planilla', k.planillaA), dato('Mes', k.mesPlanillaA), dato('Base de cotización', pesosTxt(k.baseA)),
+      rej.appendChild(grupo(empA ? 'Planilla anexa de empleados de la empresa' : 'Planilla anexa', [
+        dato('N° de planilla', k.planillaA), dato('Mes', k.mesPlanillaA),
+        empA ? dato('Fecha de pago', k.fechaPagoA) : null,
+        dato('Base de cotización', empA ? SIN_IBC : pesosTxt(k.baseA)),
         dato('Salud', pesosTxt(k.saludA)), dato('Pensión', pesosTxt(k.pensionA)), dato('Riesgos (ARL)', pesosTxt(k.riesgosA)),
         dato('Caja de compensación', pesosTxt(k.cajaA)), dato('SENA', pesosTxt(k.senaA)), dato('ICBF', pesosTxt(k.icbfA)),
         dato('Fondo de solidaridad', [k.solidarioA, pesosTxt(k.aporteA)].filter(Boolean).join(' · '))
@@ -1219,6 +1226,10 @@
     }
     rej.appendChild(grupo('Afiliaciones que declaró', [dato('EPS', p.eps), dato('Fondo de pensiones', p.pension), dato('ARL', p.arl)]));
     z.appendChild(bloqueDocs('planilla', 'Planillas y comprobantes'));
+    if (emp || empA) {
+      z.appendChild(K.nodo('<p class="rv-emp" role="note">' + K.icono('info', 16) + ' <span><b>Planilla de los empleados de la empresa</b> (tipo E). ' +
+        'El contratista es persona jurídica y no tiene base de cotización propia: salud, pensión y ARL son los totales a pagar de cada subsistema del soporte.</span></p>'));
+    }
     z.appendChild(rej);
     z.appendChild(tablaPlanillas());
     z.appendChild(notasSeccion('planilla', 'Planilla'));
@@ -1864,7 +1875,7 @@
     var fila = function (x, p, tipo) {
       return '<tr class="' + (x.actual ? 'rv-hist__actual' : '') + (tipo === 'Anexa' ? ' rv-hist__anexa' : '') + '"><th scope="row">' + x.informe + '</th>' +
         '<td>' + tipo + '</td><td>' + K.esc(p.numero) + (p.mes ? ' <small>' + K.esc(p.mes) + '</small>' : '') + '</td>' +
-        '<td>' + K.esc(K.pesos(p.base)) + '</td><td>' + K.esc(K.pesos(p.salud)) + '</td><td>' + K.esc(K.pesos(p.pension)) + '</td>' +
+        '<td>' + (p.empleados ? '<small>No aplica · empleados</small>' : K.esc(K.pesos(p.base))) + '</td><td>' + K.esc(K.pesos(p.salud)) + '</td><td>' + K.esc(K.pesos(p.pension)) + '</td>' +
         '<td>' + K.esc(K.pesos(p.riesgos)) + '</td></tr>';
     };
     var filas = h.map(function (x) { return (x.planilla ? fila(x, x.planilla, 'Principal') : '') + (x.anexa ? fila(x, x.anexa, 'Anexa') : ''); }).join('');

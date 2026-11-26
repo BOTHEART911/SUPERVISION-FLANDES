@@ -3031,3 +3031,12 @@
 .ini2-hero .acceso--principal, .ini2-hero .acceso--principal:hover { background: transparent; }
 .ini2-hero .acceso--principal { z-index: 1; }
 .ini2-hero .acceso__burbuja { position: absolute; z-index: 2; }
+
+/* 26/11 · planilla de empleados de la empresa (persona jurídica sin IBC propio) */
+.rv-emp {
+  display: flex; gap: 8px; align-items: flex-start;
+  margin: 0 0 12px; padding: 10px 12px;
+  border: 1px solid rgba(var(--k-marca-rgb), .3); border-radius: var(--k-r-sm);
+  background: var(--k-papel-2); color: var(--k-tinta); font-size: .9rem; line-height: 1.4;
+}
+.rv-emp svg { flex: 0 0 auto; margin-top: 2px; color: var(--k-marca); }
